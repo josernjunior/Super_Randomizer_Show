@@ -1,0 +1,98 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+**Super Randomizer Show**: a randomizer mod for the game **Necesse** (Steam app 1169040). Mod ID `josezito.srs`, target game version 1.3.3, Java package `srs`. It adds no content of its own. Everything it does is patch vanilla behavior, deterministically from a seed. The user-facing description (in Portuguese) is in `README.md`. The original ExampleMod template code lives in `template-backup/`, outside the source tree, and is not compiled. Modding docs: https://necessewiki.com/Modding
+
+## Build & run
+
+You need a local Necesse install. `build.gradle` auto-detects it (on Windows: `C:/Program Files (x86)/Steam/steamapps/common/Necesse`) and stops at configuration time if `Necesse.jar` isn't there. If detection fails, set `gameDirectory` in `build.gradle`.
+
+Use the Gradle wrapper (`./gradlew` in bash, `.\gradlew.bat` in PowerShell):
+
+- `buildModJar`: compiles, generates `mod.info`, and writes `build/jar/<ModName>-<gameVersion>-<modVersion>.jar`. It deletes any other jars in `build/jar/`.
+- `runClient` / `runDevClient`: builds, then starts the game through Steam (`StartSteamClient`) with the mod. The client can't start without Steam.
+- `runServer`: builds, then starts the desktop server GUI with the mod.
+
+There is no unit test suite and no linter.
+
+### Testing without a GUI
+
+The headless dedicated server exercises everything except textures and sounds. Pass `-datadir` so the cfg, world and logs go to a throwaway folder instead of the user's real `%APPDATA%\Necesse`. Run it from the game directory, with stdin feeding console commands:
+
+```bash
+G="/c/Program Files (x86)/Steam/steamapps/common/Necesse"
+cd "$G" && (sleep 25; echo "srs test"; sleep 40; echo "stop") | "$G/jre/bin/java" -jar Server.jar -nogui \
+  -datadir "C:\\some\\scratch\\dir" -mod "C:\\Dev\\SRandomizerShow\\build\\jar" -world srs_test
+```
+
+- The `srs test` console command (`srs/commands/SelfTest.java`) runs the randomized paths on the spawn level and reports any exception. It covers spawn-table remaps, killing every pooled mob (loot swaps), firing every swapped projectile and every replacement type, equipping every armor piece, applying every trinket/set buff, building every armor tooltip, and sampling translations.
+- The spoiler file at `<datadir>/cfg/mods/josezito.srs-spoiler.txt` shows every decision. Two boots with the same seed must produce identical spoilers, apart from the "Gerado em" line.
+- Texture and sound swaps are only built on clients. To check them offline, call `ResourceEncoder.loadResourceFile()` from a small harness with `Necesse.jar`, `lib/*` and `build/mod` on the classpath. Then call `SRS.freeze()`, `VisualRandomizer.build()` and `SoundRandomizer.build()`.
+
+### Build constraints
+
+- The mod source compiles at **Java 8 language level** (`sourceCompatibility = 1.8`), even though Gradle runs on JDK 17 and the game ships a Java 17 JRE. Don't use `var`, switch expressions, records, text blocks, `List.of`, etc. in `src/`.
+- Mod metadata lives in the `project.ext` block at the top of `build.gradle`. It's turned into `build/mod/mod.info` on every compile, so never edit `mod.info` by hand. `modVersion` must be dot-separated: a comma (`0,7`) breaks `mod.info`, and the game then reads the version as `0`.
+- `clientside = false`: server and clients both need the mod, and they need the same settings (see "Multiplayer" below).
+
+### Reading game code
+
+Necesse ships without sources. To decompile the whole jar, use IntelliJ's Fernflower. It needs IntelliJ's bundled JBR (Java 25), not the system JDK 17:
+
+```bash
+IJ="/c/Program Files/JetBrains/IntelliJ IDEA 2026.2.3"
+"$IJ/jbr/bin/java" -cp "$IJ/plugins/java-decompiler/lib/java-decompiler.jar" \
+  org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler -dgs=1 <Necesse.jar> <outdir>
+```
+
+This produces a jar of `.java` files; unzip it. Decompile into a scratch directory, never into the repo. For a quick signature check, `javap -p -cp <Necesse.jar> <class>` is enough.
+
+## Architecture
+
+**Boot order** (see the Javadoc on `srs/SuperRandomizerShow.java`). Necesse calls these in order:
+1. `initSettings`
+2. Necesse applies the cfg file.
+3. `preInit`: guarantees a seed, freezes the settings, shuffles translations.
+4. `init`: registers the packet and the `/srs` command. On clients it also builds the texture and sound swaps, because textures and sounds load between `init` and `initResources`.
+5. `postInit`: builds mob pools, spawns, drops, shops, weapons, equipment and projectiles.
+6. The game builds its recipe list (`RecipesGetDefaultRecipesPatch`).
+7. `Recipes.closeModRecipeRegistry` runs, and its patch writes the spoiler.
+
+**Settings: active vs stored.** `SRS.stored()` is the `ModSettings` object Necesse loads and saves. `/srs` edits it and writes the cfg file. `SRS.settings()` is a snapshot frozen in `preInit`, and every randomizer reads only that snapshot. Changes therefore apply after a restart, and Necesse re-saving cfg files mid-session can't revert pending changes.
+
+**Determinism.** All randomness goes through `srs/core/SeedRandom`. It is keyed by `seed` plus a string (feature name plus *sorted string IDs*), never by numeric registry IDs or iteration order. Keep it that way, or the same seed will stop reproducing across machines and mod lists.
+
+**One patch class per hook** in `srs/patches/`. Each one is a thin `@ModMethodPatch`/`@ModConstructorPatch` Byte Buddy advice that delegates to a static method in `srs/random/*`. Mod jars are appended to the system class loader, so inlined advice can call public mod classes directly. Advice tricks used here:
+- `@Advice.Argument(readOnly = false)` to replace an argument
+- `skipOn = OnNonDefaultValue` plus `@Advice.Return(readOnly = false)` to replace a result
+- `@Advice.Thrown(readOnly = false)` to swallow an exception
+
+**Where each feature hooks in:**
+
+| # | Feature | Class | Hook |
+|---|---|---|---|
+| 1 | Mob spawns | `MobSpawnRandomizer` | `MobRegistry.getMob(String, Level)`. Remaps the ID only on the server, and only when a stack walk finds a whitelisted caller (see below). |
+| 2 | Drops | `DropRandomizer` | A dying mob is marked in `Mob.onDeath`. The first `LootTable.getNewList` call for that mob returns the swapped mob's table. Objects and quantities use the official `ObjectLootTableDropsEvent` / `Mob*LootTableDropsEvent` listeners. |
+| 3 | Recipes | `RecipeRandomizer` | Swaps the final `Recipe.ingredients` arrays (via reflection) on the list returned by `Recipes.getDefaultRecipes()`. |
+| 4 | Shops | `ShopRandomizer` | Remaps the item ID in `ShopManager.addSellingItem`/`addBuyingItem`. Shop contents are learned in `postInit` by constructing every `HumanShop` mob. |
+| 5, 6 (weapons) | Weapon damage and crit | `WeaponRandomizer` | Modifies the result of `ToolItem.getFlatAttackDamage`. |
+| 6, 9 (equipment) | Equipment crit and damage % | `EquipmentRandomizer` | `ArmorModifiers` constructor (only inside an "armor context") and `ActiveBuff.init` for `ArmorBuff`s. Writes the `ModifierContainer` internals directly, because `ActiveBuff.setModifier` would trigger a buff manager update. |
+| 7 | Set bonuses | `EquipmentRandomizer` | Swaps `SetHelmetArmorItem.buffType`. |
+| 8 | Equipment effects | `EquipmentRandomizer` | Swaps `SimpleTrinketItem.buffStringIDs`. `EquipmentActiveBuff.addArmorBuff` uses a proxy item of the swapped piece, then restores the original armor value. `ArmorItem.addModifierTooltips` is replaced so tooltips match. |
+| 10 | Visuals | `VisualRandomizer` | Rewrites the path in `GameTexture.fromFileRawUnknown`. |
+| 11 | Projectiles | `ProjectileRandomizer` | Swaps the entity in `EntityList.add`. Network spawns use `addHidden`, so clients never swap twice. |
+| 12 | Translations | `TranslationRandomizer` | Rewrites the `TranslationCategory` maps of every `FileLanguage`, in `preInit` and after `FileLanguage.reload`. |
+| 13 | Sounds | `SoundRandomizer` | Rewrites the path in `GameSound.fromFileRaw`. Categories come from folder and file name. |
+
+**Pools and safety rules worth knowing before changing things:**
+- **Pools:** mobs only swap inside their pool (`MobPools`: hostile, critter, boss, town). Hostile mobs come from the adventure journal, which filters out raiders, portals and boss minions. Item pools skip anything that fails `ItemRegistry.isObtainable`.
+- **Mob caller whitelist:** mob spawn remaps rely on the caller whitelist in `MobSpawnRandomizer.allowedPools`. A lot of game code casts the result of `getMob` to a concrete class. Only add callers that treat the result as `Mob`/`HumanMob`, or a `ClassCastException` will crash world generation. `MobSave` (save loading) and client network spawns must never be remapped.
+- **Texture families:** textures swap as families (`zombie`, `zombiearms_left`, `zombiearms_right`, …). A family only swaps with others from the same folder that have the same set of parts at the same pixel sizes. Armor sheets also stay within their `ArmorType` slot.
+- **Projectile safety:** `UNSAFE_NAME_PARTS`, boomerangs and the `KNOWN_BAD` list (found with `srs test`) exclude projectiles that need owner-specific data. At runtime, a replacement that throws in `add`/`init` or while ticking is removed, and its type stops being used. The projectile list ticks are wrapped in `SafeTick`.
+
+**Multiplayer.** On `ServerClientConnectedEvent`, the server sends `PacketSRSConfig` with its settings. If the client's active settings differ, the client stores the server's settings in its cfg and asks the player to restart. A local single-player server shares the JVM, so nothing happens there.
+
+**Language.** Player-facing text (config comments, `/srs` output, chat messages, spoiler headings) is Brazilian Portuguese, written without accents. Code and comments are English.
