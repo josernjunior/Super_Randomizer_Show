@@ -12,6 +12,7 @@ import necesse.engine.registries.ClassIDDataContainer;
 import necesse.engine.registries.JournalRegistry;
 import necesse.engine.registries.MobRegistry;
 import necesse.entity.mobs.Mob;
+import necesse.entity.mobs.friendly.FriendlyRopableMob;
 import necesse.entity.mobs.friendly.human.HumanMob;
 
 /**
@@ -21,7 +22,7 @@ import necesse.entity.mobs.friendly.human.HumanMob;
 public final class MobPools {
 
     public enum Pool {
-        HOSTILE, CRITTER, BOSS, TOWN
+        HOSTILE, CRITTER, ANIMAL, BOSS, TOWN
     }
 
     private static final Map<Pool, List<String>> pools = new HashMap<>();
@@ -74,6 +75,9 @@ public final class MobPools {
                 pool = Pool.TOWN;
             } else if (mob.isCritter && !mob.isHostile && !MobRegistry.isBossMob(numericID)) {
                 pool = Pool.CRITTER;
+            } else if (mob instanceof FriendlyRopableMob && !mob.isHostile && !(mob instanceof HumanMob) && !MobRegistry.isBossMob(numericID)) {
+                // Farm and wild animals (sheep, cows, pigs, chickens, ostriches, penguins...), placed in herds at world generation
+                pool = Pool.ANIMAL;
             } else if (mob.isHostile && !MobRegistry.isBossMob(numericID) && !(mob instanceof HumanMob) && !mob.isSummoned
                     && MobRegistry.countMobKillStat(numericID) && (journalHostiles.isEmpty() || journalHostiles.contains(id))) {
                 pool = Pool.HOSTILE;
@@ -85,7 +89,7 @@ public final class MobPools {
         }
         for (List<String> list : pools.values()) Collections.sort(list);
         SRS.log("Mob pools: hostile=" + pools.get(Pool.HOSTILE).size() + " critter=" + pools.get(Pool.CRITTER).size()
-                + " boss=" + pools.get(Pool.BOSS).size() + " town=" + pools.get(Pool.TOWN).size());
+                + " animal=" + pools.get(Pool.ANIMAL).size() + " boss=" + pools.get(Pool.BOSS).size() + " town=" + pools.get(Pool.TOWN).size());
     }
 
     public static List<String> get(Pool pool) {

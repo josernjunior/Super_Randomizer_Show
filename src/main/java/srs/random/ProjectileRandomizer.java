@@ -1,6 +1,8 @@
 package srs.random;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -9,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import necesse.engine.registries.GameRegistry;
 import necesse.engine.registries.ProjectileRegistry;
 import necesse.entity.Entity;
@@ -94,7 +95,36 @@ public final class ProjectileRandomizer {
             if (boomerang != null && boomerang) return true;
         } catch (Exception ignored) {
         }
+        return hasMissingData(p);
+    }
+
+    /**
+     * A swap creates the replacement with its empty constructor and only fills the common flight data. Projectiles
+     * whose own fields stay empty that way (their own owner or damage, items, arrays...) only work when created by
+     * their weapon or mob, e.g. bone spikes would create spike mobs without an owner and crash the server.
+     * Sounds, trails, textures and the homing target are filled in later or handled by the game, so they are fine.
+     */
+    private static boolean hasMissingData(Projectile p) {
+        for (Class<?> c = p.getClass(); c != null && c != Projectile.class; c = c.getSuperclass()) {
+            for (Field f : c.getDeclaredFields()) {
+                if (Modifier.isStatic(f.getModifiers()) || f.getType().isPrimitive()) continue;
+                try {
+                    f.setAccessible(true);
+                    if (f.get(p) != null) continue;
+                } catch (Exception e) {
+                    return true;
+                }
+                if (!isFilledLater(f)) return true;
+            }
+        }
         return false;
+    }
+
+    private static boolean isFilledLater(Field f) {
+        String type = f.getType().getSimpleName();
+        if (type.equals("SoundPlayer") || type.equals("Trail") || type.equals("GameTextureSection") || type.equals("Chain")) return true;
+        // Homing projectiles look for a target themselves
+        return (f.getName().equals("target") && type.equals("Entity")) || (f.getName().equals("targetPos") && type.equals("Point"));
     }
 
     public static boolean isActive() {
@@ -157,10 +187,14 @@ public final class ProjectileRandomizer {
         return true;
     }
 
-    /** Wraps a projectile list tick so one broken projectile can't take the level down. */
-    public static <T> Consumer<T> safeTick(Consumer<T> tick) {
-        if (mapping.isEmpty() || tick == null || tick instanceof SafeTick) return tick;
-        return new SafeTick<>(tick);
+    /** Called by {@link srs.core.SafeTick} when a projectile threw while ticking: its type stops being used as a replacement. */
+    public static void onTickError(Projectile projectile, Throwable e) {
+        String type = null;
+        try {
+            type = projectile.getStringID();
+        } catch (Throwable ignored) {
+        }
+        markBad(type, "tick", e);
     }
 
     private static void markBad(String type, String what, Throwable e) {
@@ -168,29 +202,6 @@ public final class ProjectileRandomizer {
         synchronized (reportedErrors) {
             if (reportedErrors.add(what + type + e.getClass().getName())) {
                 SRS.warn("Projectile randomizer: " + type + " failed on " + what + " (" + e + "); it won't be used as a replacement anymore");
-            }
-        }
-    }
-
-    private static class SafeTick<T> implements Consumer<T> {
-        private final Consumer<T> inner;
-
-        SafeTick(Consumer<T> inner) {
-            this.inner = inner;
-        }
-
-        @Override
-        public void accept(T t) {
-            try {
-                inner.accept(t);
-            } catch (Throwable e) {
-                String type = null;
-                try {
-                    if (t instanceof Projectile) type = ((Projectile) t).getStringID();
-                } catch (Throwable ignored) {
-                }
-                markBad(type, "tick", e);
-                if (t instanceof Entity) ((Entity) t).remove();
             }
         }
     }

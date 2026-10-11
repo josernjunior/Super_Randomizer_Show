@@ -2,10 +2,12 @@ package srs.commands;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
-import necesse.engine.commands.CommandLog;
+import java.util.function.Consumer;
 import necesse.engine.localization.Localization;
 import necesse.engine.network.server.Server;
 import necesse.engine.network.server.ServerClient;
@@ -34,6 +36,7 @@ import srs.core.MobPools.Pool;
 import srs.core.SRS;
 import srs.random.MobSpawnRandomizer;
 import srs.random.ProjectileRandomizer;
+import srs.ui.MobChoices;
 
 /**
  * /srs test - runs the randomized code paths on the server's spawn level and reports what failed.
@@ -45,15 +48,15 @@ public final class SelfTest {
     private SelfTest() {
     }
 
-    public static void run(Server server, CommandLog log) {
+    public static void run(Server server, Consumer<String> log) {
         if (server == null || server.world == null) {
-            log.add("Sem servidor/mundo carregado.");
+            log.accept("Sem servidor/mundo carregado.");
             return;
         }
         Level level = server.world.getLevel(server.world.worldEntity.spawnLevelIdentifier);
         Point tile = server.world.worldEntity.spawnTile;
         if (level == null || tile == null) {
-            log.add("Nivel de spawn nao carregado.");
+            log.accept("Nivel de spawn nao carregado.");
             return;
         }
         float x = tile.x * 32 + 16;
@@ -66,6 +69,7 @@ public final class SelfTest {
         int spawnWrong = 0;
         List<String> natural = new ArrayList<>(MobPools.get(Pool.HOSTILE));
         natural.addAll(MobPools.get(Pool.CRITTER));
+        natural.addAll(MobPools.get(Pool.ANIMAL));
         for (String id : natural) {
             try {
                 MobChance chance = new MobSpawnTable().add(1, id).getRandomMob(level, (ServerClient) null, tile, GameRandom.globalRandom, "srstest");
@@ -79,14 +83,22 @@ public final class SelfTest {
                 fail(failures, "spawn " + id, e);
             }
         }
-        log.add("Spawn natural: " + spawnChecked + " testados, " + spawnRemapped + " trocados, " + spawnWrong + " diferentes do esperado");
+        log.accept("Spawn natural: " + spawnChecked + " testados, " + spawnRemapped + " trocados, " + spawnWrong + " diferentes do esperado");
 
         // 2 - kill every randomized mob and count the drops
         int killed = 0;
         int drops = 0;
+        // Animals placed when the world was generated (shows whether sheep, cows... were swapped)
+        Map<String, Integer> animals = new TreeMap<>();
+        level.entityManager.mobs.stream().filter(m -> MobPools.poolOf(m.getStringID()) == Pool.ANIMAL)
+                .forEach(m -> animals.merge(m.getStringID(), 1, Integer::sum));
+        log.accept("Animais carregados no mundo: " + (animals.isEmpty() ? "nenhum perto do spawn" : animals.toString())
+                + " | grupo de animais: " + MobPools.get(Pool.ANIMAL));
+
         List<String> killList = new ArrayList<>(MobPools.get(Pool.HOSTILE));
         killList.addAll(MobPools.get(Pool.BOSS));
         killList.addAll(MobPools.get(Pool.CRITTER));
+        killList.addAll(MobPools.get(Pool.ANIMAL));
         for (String id : killList) {
             try {
                 Mob mob = MobRegistry.getMob(MobRegistry.getMobID(id), level);
@@ -101,7 +113,7 @@ public final class SelfTest {
             }
         }
         level.entityManager.pickups.stream().forEach(p -> p.remove());
-        log.add("Mortes: " + killed + " mobs mortos, " + drops + " drops gerados");
+        log.accept("Mortes: " + killed + " mobs mortos, " + drops + " drops gerados");
 
         // 3 - fire every projectile type and tick it a few times
         Mob owner = MobRegistry.getMob(MobRegistry.getMobID("zombie"), level);
@@ -132,7 +144,7 @@ public final class SelfTest {
                     if (added != null) added.remove();
                 }
             }
-            log.add("Projeteis: " + fired + " disparados, " + swapped + " trocados");
+            log.accept("Projeteis: " + fired + " disparados, " + swapped + " trocados");
 
             // Every type in the pool must survive being created generically, which is what a swap does
             int targetsOk = 0;
@@ -140,19 +152,35 @@ public final class SelfTest {
             template.applyData(x, y, x + 300, y, 60.0F, 400, new GameDamage(10.0F), owner);
             for (String type : ProjectileRandomizer.getPool()) {
                 Projectile p = null;
+                Set<Integer> mobsBefore = new HashSet<>();
+                level.entityManager.mobs.stream().forEach(m -> mobsBefore.add(m.getUniqueID()));
+                List<Mob> spawned = new ArrayList<>();
                 try {
                     template.resetUniqueID(GameRandom.globalRandom);
                     p = ProjectileRandomizer.createLike(type, template, level);
                     level.entityManager.projectiles.addHidden(p);
-                    for (int t = 0; t < 10 && !p.removed(); t++) p.serverTick();
+                    // Fly until the end, up to 10 seconds: movement is where hits and impact effects happen
+                    for (int t = 0; t < 200 && !p.removed(); t++) {
+                        p.tickMovement(50.0F);
+                        if (!p.removed()) p.serverTick();
+                    }
+                    // Mobs the projectile created (spikes, summons...) must work too
+                    level.entityManager.mobs.stream().filter(m -> !mobsBefore.contains(m.getUniqueID())).forEach(spawned::add);
+                    for (Mob m : spawned) {
+                        for (int t = 0; t < 5 && !m.removed(); t++) {
+                            m.tickMovement(50.0F);
+                            m.serverTick();
+                        }
+                    }
                     targetsOk++;
                 } catch (Throwable e) {
-                    fail(failures, "substituto " + type, e);
+                    fail(failures, "substituto " + type + (spawned.isEmpty() ? "" : " (mobs criados: " + spawned.size() + ")"), e);
                 } finally {
                     if (p != null) p.remove();
+                    for (Mob m : spawned) m.remove();
                 }
             }
-            log.add("Substitutos de projetil: " + targetsOk + "/" + ProjectileRandomizer.getPool().size() + " funcionam criados de forma generica");
+            log.accept("Substitutos de projetil: " + targetsOk + "/" + ProjectileRandomizer.getPool().size() + " funcionam criados de forma generica");
             owner.remove();
         }
 
@@ -196,19 +224,33 @@ public final class SelfTest {
                 }
             }
             human.remove();
-            log.add("Armaduras equipadas: " + equipped + " (" + armorDiffs + " com valor de armadura diferente do original)");
+            log.accept("Armaduras equipadas: " + equipped + " (" + armorDiffs + " com valor de armadura diferente do original)");
         }
-        log.add("Equipamentos: " + buffs + " buffs aplicados, " + tooltips + " descricoes de armadura geradas");
+        log.accept("Equipamentos: " + buffs + " buffs aplicados, " + tooltips + " descricoes de armadura geradas");
 
-        log.add("Traducoes (exemplo): item.copperbar = \"" + Localization.translate("item", "copperbar")
+        String[][] bosses = MobChoices.bosses(SRS.settings().bossPool);
+        String[][] npcs = MobChoices.townNPCs(SRS.settings().townNPCPool);
+        log.accept("Tela de configuracao: " + bosses.length + " chefes para marcar: " + names(bosses));
+        log.accept("Tela de configuracao: " + npcs.length + " NPCs para marcar: " + names(npcs));
+
+        log.accept("Traducoes (exemplo): item.copperbar = \"" + Localization.translate("item", "copperbar")
                 + "\", mob.zombie = \"" + Localization.translate("mob", "zombie") + "\"");
 
         if (failures.isEmpty()) {
-            log.add("Nenhuma falha encontrada.");
+            log.accept("Nenhuma falha encontrada.");
         } else {
-            log.add(failures.size() + " falhas:");
-            for (Map.Entry<String, Integer> e : failures.entrySet()) log.add("  " + e.getKey());
+            log.accept(failures.size() + " falhas:");
+            for (Map.Entry<String, Integer> e : failures.entrySet()) log.accept("  " + e.getKey());
         }
+    }
+
+    private static String names(String[][] entries) {
+        StringBuilder sb = new StringBuilder();
+        for (String[] e : entries) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(e[1]);
+        }
+        return sb.toString();
     }
 
     private static void fail(Map<String, Integer> failures, String what, Throwable e) {

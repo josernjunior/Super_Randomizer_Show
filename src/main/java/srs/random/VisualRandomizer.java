@@ -39,8 +39,9 @@ public final class VisualRandomizer {
         if (built) return;
         built = true;
         mapping.clear();
-        if (!SRS.settings().visuals || !ResourceEncoder.isLoaded()) return;
-        Set<String> folders = SRS.parseList(SRS.settings().visualFolders);
+        boolean bugged = SRS.settings().funnyBuggedSwap;
+        if ((!SRS.settings().visuals && !bugged) || !ResourceEncoder.isLoaded()) return;
+        Set<String> folders = SRS.settings().visuals ? SRS.parseList(SRS.settings().visualFolders) : Collections.<String>emptySet();
 
         // folder -> family base -> part -> file info
         Map<String, Map<String, Map<String, Tex>>> families = new HashMap<>();
@@ -50,7 +51,7 @@ public final class VisualRandomizer {
             int slash = path.lastIndexOf('/');
             if (slash < 0) continue;
             String folder = path.substring(0, slash);
-            if (!matchesFolder(folder, folders)) continue;
+            if (!matchesFolder(folder, folders) && !(bugged && isMobFolder(folder))) continue;
             String name = path.substring(slash + 1, path.length() - 4);
             String base = name;
             String part = "";
@@ -76,10 +77,15 @@ public final class VisualRandomizer {
         }
 
         List<String> lines = Spoiler.section("10 - Visuais (textura original -> textura mostrada)");
+        if (bugged) lines.add("Troca Bugada Divertida ligada: as partes dos mobs ([bugada]) trocam separadas umas das outras.");
         List<String> folderNames = new ArrayList<>(families.keySet());
         Collections.sort(folderNames);
         for (String folder : folderNames) {
             Map<String, Map<String, Tex>> byBase = families.get(folder);
+            if (bugged && isMobFolder(folder)) {
+                swapPartsSeparately(folder, byBase, lines);
+                continue;
+            }
             // Families only swap with families made of the same parts with the same sizes
             Map<String, List<String>> groups = new HashMap<>();
             for (Map.Entry<String, Map<String, Tex>> e : byBase.entrySet()) {
@@ -114,6 +120,38 @@ public final class VisualRandomizer {
         SRS.log("Visual randomizer swapped " + mapping.size() + " textures");
     }
 
+    /**
+     * Troca Bugada Divertida: every part (body, left arm, right arm, shadow...) swaps on its own with the same part of
+     * other mobs of the same size, so a mob can end up with a slime's body and a zombie's arms.
+     */
+    private static void swapPartsSeparately(String folder, Map<String, Map<String, Tex>> byBase, List<String> lines) {
+        Map<String, List<String>> groups = new HashMap<>();
+        for (Map<String, Tex> parts : byBase.values()) {
+            for (Map.Entry<String, Tex> part : parts.entrySet()) {
+                groups.computeIfAbsent(part.getKey() + "|" + part.getValue().size, k -> new ArrayList<>()).add(part.getValue().path);
+            }
+        }
+        List<String> keys = new ArrayList<>(groups.keySet());
+        Collections.sort(keys);
+        for (String key : keys) {
+            List<String> files = groups.get(key);
+            if (files.size() < 2) continue;
+            Map<String, String> perm = SeedRandom.permutation("visuals-bugged:" + folder + "|" + key, files);
+            List<String> sorted = new ArrayList<>(files);
+            Collections.sort(sorted);
+            for (String f : sorted) {
+                String to = perm.get(f);
+                if (to.equals(f)) continue;
+                mapping.put(f, to);
+                lines.add("[bugada] " + f + " -> " + to);
+            }
+        }
+    }
+
+    private static boolean isMobFolder(String folder) {
+        return folder.equals("mobs") || folder.startsWith("mobs/");
+    }
+
     private static String signature(Map<String, Tex> parts) {
         List<String> keys = new ArrayList<>(parts.keySet());
         Collections.sort(keys);
@@ -143,7 +181,7 @@ public final class VisualRandomizer {
 
     /** Called from the GameTexture.fromFileRawUnknown patch. */
     public static String remap(String filePath, boolean outsideGame) {
-        if (outsideGame || filePath == null || !SRS.settingsApplied() || !SRS.settings().visuals) return filePath;
+        if (outsideGame || filePath == null || !SRS.settingsApplied() || (!SRS.settings().visuals && !SRS.settings().funnyBuggedSwap)) return filePath;
         if (!built) build();
         if (mapping.isEmpty()) return filePath;
         String key = filePath.endsWith(".png") ? filePath : filePath + ".png";

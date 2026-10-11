@@ -19,7 +19,7 @@ public class SRSSettings extends ModSettings {
     public static final String DEFAULT_VISUAL_FOLDERS = "items,mobs,player/armor,player/weapons,player/holditems,player/hair,projectiles";
     public static final String DEFAULT_SOUND_CATEGORIES = "music,animals,creatures,environment,weather,weapons,impacts,interface,bosses,other";
 
-    // Seed: 0 means "generate one on the next start"
+    // Seed: 0 means "generate one on the next start", so every clean install gets its own random seed
     public long seed = 0;
 
     // 1 - Mob spawns
@@ -27,7 +27,7 @@ public class SRSSettings extends ModSettings {
     public boolean mobSpawnHostiles = true;
     public boolean mobSpawnCritters = true;
     public boolean mobSpawnTownNPCs = true;
-    public boolean mobSpawnBosses = true;
+    public boolean mobSpawnAnimals = true;
     public String bossPool = DEFAULT_BOSS_POOL;
     public String townNPCPool = DEFAULT_TOWN_NPC_POOL;
 
@@ -36,10 +36,12 @@ public class SRSSettings extends ModSettings {
     public boolean dropQuantities = true;
     public float dropQuantityMin = 0.5F;
     public float dropQuantityMax = 2.5F;
+    public boolean randomItemDrop = true;
+    public float randomItemDropChance = 0.01F;
 
     // 3 - Recipes
-    public boolean recipes = true;
-    public boolean recipesSameStation = true;
+    public boolean recipes = false;
+    public boolean recipesSameStation = false;
 
     // 4 - Shops
     public boolean shops = true;
@@ -70,14 +72,15 @@ public class SRSSettings extends ModSettings {
     public float equipmentDamageMultMax = 2.5F;
 
     // 10 - Visuals
-    public boolean visuals = true;
+    public boolean visuals = false;
     public String visualFolders = DEFAULT_VISUAL_FOLDERS;
+    public boolean funnyBuggedSwap = false;
 
     // 11 - Projectiles
     public boolean projectiles = true;
 
     // 12 - Translations
-    public boolean translations = true;
+    public boolean translations = false;
     public String translationMode = "entries";
 
     // 13 - Sounds
@@ -97,14 +100,16 @@ public class SRSSettings extends ModSettings {
         data.addBoolean("mobSpawnHostiles", mobSpawnHostiles, "1a - Inimigos que nascem naturalmente");
         data.addBoolean("mobSpawnCritters", mobSpawnCritters, "1b - Bichos (criaturas passivas)");
         data.addBoolean("mobSpawnTownNPCs", mobSpawnTownNPCs, "1c - NPCs de vilas e estruturas");
-        data.addBoolean("mobSpawnBosses", mobSpawnBosses, "1d - Chefes invocados por itens e incursoes");
-        data.addSafeString("bossPool", bossPool, "Chefes que podem ser trocados entre si (IDs separados por virgula)");
-        data.addSafeString("townNPCPool", townNPCPool, "NPCs de cidade que podem ser trocados entre si (IDs separados por virgula)");
+        data.addBoolean("mobSpawnAnimals", mobSpawnAnimals, "1d - Animais (ovelhas, vacas, porcos, galinhas, avestruzes, pinguins...) colocados na criacao do mundo");
+        data.addSafeString("bossPool", bossPool, "1.2 - Chefes que podem trocar entre si, tambem nos drops (IDs separados por virgula; vazio = nao trocar chefes)");
+        data.addSafeString("townNPCPool", townNPCPool, "1.1 - NPCs que podem trocar de lugar entre si (IDs separados por virgula)");
 
         data.addBoolean("drops", drops, "2 - Troca a tabela de drops entre inimigos, chefes, bichos, rochas, arvores e plantas");
         data.addBoolean("dropQuantities", dropQuantities, "2 - Multiplica a quantidade de cada item dropado por um fator fixo da seed");
         data.addFloat("dropQuantityMin", dropQuantityMin, "Multiplicador minimo de quantidade");
         data.addFloat("dropQuantityMax", dropQuantityMax, "Multiplicador maximo de quantidade");
+        data.addBoolean("randomItemDrop", randomItemDrop, "2 - Ao matar um mob, chance de dropar tambem um item aleatorio de todo o jogo");
+        data.addFloat("randomItemDropChance", randomItemDropChance, "Chance do item aleatorio (0.01 = 1%)");
 
         data.addBoolean("recipes", recipes, "3 - Embaralha os ingredientes das receitas");
         data.addBoolean("recipesSameStation", recipesSameStation, "true = so troca entre receitas da mesma estacao de trabalho (mais jogavel)");
@@ -131,6 +136,7 @@ public class SRSSettings extends ModSettings {
 
         data.addBoolean("visuals", visuals, "10 - Troca texturas entre itens, armaduras, armas, mobs, NPCs, cosmeticos (so entre imagens do mesmo tamanho)");
         data.addSafeString("visualFolders", visualFolders, "Pastas de textura que participam (separadas por virgula)");
+        data.addBoolean("funnyBuggedSwap", funnyBuggedSwap, "10b - Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com bracos de zumbi). Funciona mesmo com visuals desligado");
 
         data.addBoolean("projectiles", projectiles, "11 - Troca os projeteis de armas, inimigos e chefes");
 
@@ -153,7 +159,7 @@ public class SRSSettings extends ModSettings {
         mobSpawnHostiles = data.getBoolean("mobSpawnHostiles", mobSpawnHostiles, false);
         mobSpawnCritters = data.getBoolean("mobSpawnCritters", mobSpawnCritters, false);
         mobSpawnTownNPCs = data.getBoolean("mobSpawnTownNPCs", mobSpawnTownNPCs, false);
-        mobSpawnBosses = data.getBoolean("mobSpawnBosses", mobSpawnBosses, false);
+        mobSpawnAnimals = data.getBoolean("mobSpawnAnimals", mobSpawnAnimals, false);
         bossPool = data.getSafeString("bossPool", bossPool, false);
         townNPCPool = data.getSafeString("townNPCPool", townNPCPool, false);
 
@@ -161,6 +167,8 @@ public class SRSSettings extends ModSettings {
         dropQuantities = data.getBoolean("dropQuantities", dropQuantities, false);
         dropQuantityMin = data.getFloat("dropQuantityMin", dropQuantityMin, false);
         dropQuantityMax = data.getFloat("dropQuantityMax", dropQuantityMax, false);
+        randomItemDrop = data.getBoolean("randomItemDrop", randomItemDrop, false);
+        randomItemDropChance = data.getFloat("randomItemDropChance", randomItemDropChance, false);
 
         recipes = data.getBoolean("recipes", recipes, false);
         recipesSameStation = data.getBoolean("recipesSameStation", recipesSameStation, false);
@@ -187,6 +195,7 @@ public class SRSSettings extends ModSettings {
 
         visuals = data.getBoolean("visuals", visuals, false);
         visualFolders = data.getSafeString("visualFolders", visualFolders, false);
+        funnyBuggedSwap = data.getBoolean("funnyBuggedSwap", funnyBuggedSwap, false);
 
         projectiles = data.getBoolean("projectiles", projectiles, false);
 

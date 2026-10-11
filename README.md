@@ -6,8 +6,8 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 
 | # | Opção no config | O que faz |
 |---|---|---|
-| 1 | `mobSpawns` | Troca onde aparecem inimigos (`mobSpawnHostiles`), bichos (`mobSpawnCritters`), NPCs de vilas e estruturas (`mobSpawnTownNPCs`) e chefes invocados por itens ou incursões (`mobSpawnBosses`). Cada um só troca com outro do mesmo grupo. |
-| 2 | `drops` / `dropQuantities` | Troca a tabela de loot entre inimigos, chefes, bichos, rochas/minérios, árvores e plantas. Cada item dropado também recebe um multiplicador fixo de quantidade (`dropQuantityMin` a `dropQuantityMax`). |
+| 1 | `mobSpawns` | Troca onde aparecem inimigos (`mobSpawnHostiles`), bichos (`mobSpawnCritters`), animais como ovelhas, vacas, porcos, galinhas, avestruzes e pinguins (`mobSpawnAnimals`), NPCs de vilas e estruturas (`mobSpawnTownNPCs`, com a lista 1.1 `townNPCPool`) e chefes invocados por itens ou incursões (lista 1.2 `bossPool`; com a lista vazia, nenhum chefe troca). Cada um só troca com outro do mesmo grupo. Os animais e as criaturas colocadas na criação do mundo só mudam em mundos novos ou em áreas ainda não exploradas. |
+| 2 | `drops` / `dropQuantities` / `randomItemDrop` | Troca a tabela de loot entre inimigos, chefes, bichos, rochas/minérios, árvores e plantas. Cada item dropado também recebe um multiplicador fixo de quantidade (`dropQuantityMin` a `dropQuantityMax`). Além disso, todo mob morto tem uma chance (`randomItemDropChance`, 1% por padrão) de dropar também um item aleatório de todo o jogo. |
 | 3 | `recipes` | Embaralha os ingredientes das receitas. Com `recipesSameStation = true`, a troca só acontece entre receitas da mesma estação de trabalho. |
 | 4 | `shops` | Embaralha os itens que os NPCs de cidade vendem e compram. |
 | 5 | `weaponDamage` | Dano das armas: `multiplier` (fator aleatório entre `weaponDamageMin` e `weaponDamageMax`), `shuffle` (troca o dano entre armas de força parecida) ou `chaos` (troca com qualquer arma do mesmo tipo de dano). |
@@ -16,17 +16,33 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 | 8 | `equipmentEffects` | Troca os efeitos entre acessórios e entre peças de armadura do mesmo slot. Cada peça mantém o próprio valor de armadura. |
 | 9 | `equipmentDamage` | Multiplica o % de dano extra que os equipamentos dão. |
 | 10 | `visuals` | Troca as texturas de itens, armas, armaduras, cosméticos, mobs, NPCs e projéteis. Só troca entre imagens compatíveis, então um mob vira outro mob inteiro e um capacete vira outro capacete. As pastas usadas ficam em `visualFolders`. |
+| 10b | `funnyBuggedSwap` | **Troca Bugada Divertida** (desligada por padrão): as partes dos mobs (corpo, braços, sombra) trocam separadas umas das outras, criando misturas como um slime com braços de zumbi. Funciona mesmo com `visuals` desligado. |
 | 11 | `projectiles` | Troca os projéteis de armas, inimigos e chefes. O substituto mantém a posição, a direção, a velocidade, o alcance e o dano do original. |
 | 12 | `translations` | Embaralha os textos do jogo: `entries` troca textos inteiros dentro da mesma categoria; `words` troca as palavras de lugar. |
 | 13 | `sounds` | Troca os sons dentro de cada categoria: `music`, `animals`, `creatures`, `environment`, `weather`, `weapons`, `impacts`, `interface`, `bosses`, `notes` e `other`. As categorias usadas ficam em `soundCategories`. |
 
 ## Configuração
 
+### Pelo menu do jogo (mais fácil)
+
+No menu principal, abra **Mods**, clique em **Super Randomizer Show** e depois no botão **Configurar randomizer**, no fim do painel da direita. A tela de configuração tem:
+
+- a seed, com um botão **Sortear**, que pede confirmação antes de trocar;
+- uma caixa para ligar/desligar cada uma das 13 opções; quando uma opção está desligada, as sub-opções dela ficam acinzentadas;
+- caixas para escolher quais chefes e quais NPCs de cidade podem trocar entre si, com o nome de cada um;
+- controles deslizantes para os valores (multiplicadores, porcentagens e a chance do item aleatório) e listas para escolher os modos;
+- uma seção **Avançado** com o spoiler e as listas de mobs e itens que nunca devem ser trocados;
+- os botões **Salvar**, **Restaurar padrão** (mantém a seed), **Reiniciar jogo** e **Voltar**. Se você voltar sem salvar, o jogo pergunta se quer salvar.
+
+### Pelo arquivo
+
 O arquivo de configuração é criado na primeira vez que o jogo abre com o mod:
 
 `%APPDATA%\Necesse\cfg\mods\josezito.srs.cfg`
 
-Cada opção vem com um comentário explicando o que faz. Para desligar uma opção, troque `true` por `false`. Com `seed = 0`, o mod gera uma seed nova no próximo início. Para nunca randomizar certos mobs ou itens, coloque os IDs deles em `excludeMobs` e `excludeItems`, separados por vírgula.
+Cada opção vem com um comentário explicando o que faz. Para desligar uma opção, troque `true` por `false`.
+
+Numa instalação limpa, o mod sorteia uma seed aleatória e grava no arquivo. Receitas (`recipes`), visuais (`visuals`) e traduções (`translations`) vêm desligados; as demais opções vêm ligadas. Com `seed = 0`, o mod gera uma seed aleatória nova no próximo início. Para nunca randomizar certos mobs ou itens, coloque os IDs deles em `excludeMobs` e `excludeItems`, separados por vírgula.
 
 **A randomização é montada enquanto o jogo carrega, então qualquer mudança só vale depois de reiniciar o jogo (ou o servidor).**
 

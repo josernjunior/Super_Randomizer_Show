@@ -37,8 +37,10 @@ public final class MobSpawnRandomizer {
         List<String> lines = Spoiler.section("1 - Aparecimento de mobs (original -> novo)");
         addPool(Pool.HOSTILE, s.mobSpawnHostiles, lines);
         addPool(Pool.CRITTER, s.mobSpawnCritters, lines);
+        addPool(Pool.ANIMAL, s.mobSpawnAnimals, lines);
         addPool(Pool.TOWN, s.mobSpawnTownNPCs, lines);
-        addPool(Pool.BOSS, s.mobSpawnBosses, lines);
+        // Which bosses swap is decided by bossPool (empty = none)
+        addPool(Pool.BOSS, true, lines);
     }
 
     private static void addPool(Pool pool, boolean enabled, List<String> lines) {
@@ -80,7 +82,14 @@ public final class MobSpawnRandomizer {
 
     private static EnumSet<Pool> allowedPools(String caller) {
         // Natural spawning (all biome/incursion spawn tables) only ever handles the result as a Mob
-        if (caller.startsWith("necesse.level.maps.biomes.MobSpawnTable")) return EnumSet.of(Pool.HOSTILE, Pool.CRITTER);
+        if (caller.startsWith("necesse.level.maps.biomes.MobSpawnTable")) return EnumSet.of(Pool.HOSTILE, Pool.CRITTER, Pool.ANIMAL);
+        // World generation: animal herds, creatures placed on the map, spider nests, crypts... (all handled as Mob)
+        if (caller.startsWith("necesse.engine.world.biomeGenerator.GeneratorPlaceFactory")
+                || caller.startsWith("necesse.level.maps.generationModules.GenerationTools")
+                || caller.startsWith("necesse.level.maps.generationModules.CellAutomaton")
+                || caller.startsWith("necesse.level.maps.generationModules.ModularGeneration")) {
+            return EnumSet.of(Pool.HOSTILE, Pool.CRITTER, Pool.ANIMAL);
+        }
         // Presets that cast the result to HumanMob or check instanceof
         if (caller.startsWith("necesse.level.maps.presets.modularPresets.vilagePresets.VillagePreset")
                 || caller.equals("necesse.level.maps.presets.Preset")

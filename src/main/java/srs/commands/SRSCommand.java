@@ -18,6 +18,7 @@ import necesse.engine.network.server.ServerClient;
 import necesse.engine.save.LoadData;
 import srs.SRSSettings;
 import srs.core.SRS;
+import srs.core.ServerTasks;
 import srs.core.Spoiler;
 
 /**
@@ -124,7 +125,15 @@ public class SRSCommand extends ModularChatCommand {
                 return;
             }
             case "test": {
-                SelfTest.run(server, log);
+                // Runs on the server tick thread: from a dedicated server's console this command arrives on another thread
+                log.add("Autoteste iniciado, o resultado aparece em instantes...");
+                ServerTasks.submit(() -> SelfTest.run(server, line -> {
+                    if (serverClient != null) {
+                        serverClient.sendChatMessage(line);
+                    } else {
+                        System.out.println(line);
+                    }
+                }));
                 return;
             }
             case "spoiler": {
@@ -144,7 +153,7 @@ public class SRSCommand extends ModularChatCommand {
                         + " | 3 Receitas: " + onOff(s.recipes) + " | 4 Lojas: " + onOff(s.shops));
                 log.add(" 5 Dano armas: " + onOff(s.weaponDamage) + " | 6 Critico: " + onOff(s.critChance)
                         + " | 7 Bonus conjunto: " + onOff(s.armorSetBonuses) + " | 8 Efeitos: " + onOff(s.equipmentEffects));
-                log.add(" 9 % dano equip.: " + onOff(s.equipmentDamage) + " | 10 Visuais: " + onOff(s.visuals)
+                log.add(" 9 % dano equip.: " + onOff(s.equipmentDamage) + " | 10 Visuais: " + onOff(s.visuals) + " (Troca Bugada Divertida: " + onOff(s.funnyBuggedSwap) + ")"
                         + " | 11 Projeteis: " + onOff(s.projectiles) + " | 12 Traducoes: " + onOff(s.translations) + " | 13 Sons: " + onOff(s.sounds));
                 if (!pending().fingerprint().equals(s.fingerprint())) {
                     log.add("Ha mudancas salvas no arquivo que so valem depois de reiniciar (seed salva: " + pending().seed + ").");

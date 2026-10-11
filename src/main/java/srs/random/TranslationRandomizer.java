@@ -3,9 +3,11 @@ package srs.random;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,7 +37,22 @@ public final class TranslationRandomizer {
     private static final Pattern PLACEHOLDER = Pattern.compile("<[^>]+>");
     private static final Pattern WORD = Pattern.compile("<[^>]+>|[\\p{L}\\p{N}']+");
 
+    /** Categories whose original texts are kept, so the settings screen can show real names. */
+    private static final Set<String> KEEP_ORIGINALS = new HashSet<>(Collections.singletonList("mob"));
+    private static final Map<String, Map<String, String>> ORIGINALS = new HashMap<>();
+
     private TranslationRandomizer() {
+    }
+
+    /** The text before shuffling, in the current language (falls back to the current, possibly shuffled, text). */
+    public static String originalText(String category, String key) {
+        Language current = Localization.getCurrentLang();
+        if (current != null) {
+            Map<String, String> originals = ORIGINALS.get(current.stringID);
+            String text = originals == null ? null : originals.get(category + "." + key);
+            if (text != null) return text;
+        }
+        return Localization.translate(category, key);
     }
 
     /** Randomizes every loaded file language. */
@@ -66,6 +83,14 @@ public final class TranslationRandomizer {
             boolean words = "words".equalsIgnoreCase(SRS.settings().translationMode);
             for (TranslationCategory category : categories.values()) {
                 Map<String, AbstractTranslationElement> map = Reflect.get(TranslationCategory.class, category, "translations");
+                if (KEEP_ORIGINALS.contains(category.name)) {
+                    Map<String, String> originals = ORIGINALS.computeIfAbsent(language.stringID, k -> new HashMap<>());
+                    for (Map.Entry<String, AbstractTranslationElement> e : map.entrySet()) {
+                        if (e.getValue() != null && e.getValue().translation != null) {
+                            originals.putIfAbsent(category.name + "." + e.getKey(), e.getValue().translation);
+                        }
+                    }
+                }
                 String key = "translations:" + language.stringID + ":" + category.name;
                 if (words) {
                     shuffleWords(map, key);

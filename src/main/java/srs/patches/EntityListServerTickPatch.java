@@ -5,15 +5,15 @@ import java.util.function.Consumer;
 import necesse.engine.modLoader.annotations.ModMethodPatch;
 import necesse.entity.manager.EntityList;
 import net.bytebuddy.asm.Advice;
-import srs.random.ProjectileRandomizer;
+import srs.core.SafeTick;
 
-/** Feature 11: a projectile that throws while ticking is removed instead of crashing the server. */
+/** Safety net: a projectile or mob that throws while ticking is removed instead of crashing the server. */
 @ModMethodPatch(target = EntityList.class, name = "serverTick", arguments = {Consumer.class, List.class})
 public class EntityListServerTickPatch {
 
     @Advice.OnMethodEnter
     static void onEnter(@Advice.Argument(value = 0, readOnly = false) Consumer tick, @Advice.FieldValue("entityName") String entityName) {
-        if ("projectile".equals(entityName)) tick = ProjectileRandomizer.safeTick(tick);
+        tick = SafeTick.wrap(entityName, tick);
     }
 
 }

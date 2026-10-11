@@ -13,11 +13,13 @@ import necesse.engine.events.loot.MobLootTableDropsEvent;
 import necesse.engine.events.loot.MobPrivateLootTableDropsEvent;
 import necesse.engine.events.loot.ObjectLootTableDropsEvent;
 import necesse.engine.network.server.ServerClient;
+import necesse.engine.registries.ItemRegistry;
 import necesse.engine.registries.MobRegistry;
 import necesse.engine.registries.ObjectRegistry;
 import necesse.engine.util.GameRandom;
 import necesse.entity.mobs.Mob;
 import necesse.inventory.InventoryItem;
+import necesse.inventory.item.Item;
 import necesse.inventory.lootTable.LootTable;
 import necesse.level.gameObject.GameObject;
 import srs.SRSSettings;
@@ -39,6 +41,7 @@ public final class DropRandomizer {
     private static final ThreadLocal<ArrayDeque<Mob>> dying = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<Integer> suppress = ThreadLocal.withInitial(() -> 0);
     private static boolean listenersAdded;
+    private static List<Item> randomItemPool;
 
     private DropRandomizer() {
     }
@@ -50,7 +53,7 @@ public final class DropRandomizer {
         SRSSettings s = SRS.settings();
         if (s.drops) {
             List<String> lines = Spoiler.section("2 - Drops: tabela de loot (quem morre -> dropa como)");
-            for (Pool pool : new Pool[]{Pool.HOSTILE, Pool.BOSS, Pool.CRITTER}) {
+            for (Pool pool : new Pool[]{Pool.HOSTILE, Pool.BOSS, Pool.CRITTER, Pool.ANIMAL}) {
                 Map<String, String> perm = SeedRandom.permutation("drops:mob:" + pool.name(), MobPools.get(pool));
                 mobMapping.putAll(perm);
                 List<String> keys = new ArrayList<>(perm.keySet());
@@ -78,7 +81,11 @@ public final class DropRandomizer {
             Spoiler.section("2 - Drops: quantidade").add("Cada item recebe um multiplicador fixo entre " + s.dropQuantityMin
                     + " e " + s.dropQuantityMax + " (calculado pela seed + ID do item). Itens nao empilhaveis nao mudam.");
         }
-        if (!listenersAdded && (s.drops || s.dropQuantities)) {
+        if (s.randomItemDrop) {
+            Spoiler.section("2 - Drops: item aleatorio").add("Cada mob morto tem " + formatPercent(s.randomItemDropChance)
+                    + " de chance de dropar tambem um item aleatorio entre " + randomItemPool().size() + " itens.");
+        }
+        if (!listenersAdded && (s.drops || s.dropQuantities || s.randomItemDrop)) {
             listenersAdded = true;
             GameEvents.addListener(ObjectLootTableDropsEvent.class, new GameEventListener<ObjectLootTableDropsEvent>() {
                 @Override
@@ -90,6 +97,7 @@ public final class DropRandomizer {
                 @Override
                 public void onEvent(MobLootTableDropsEvent event) {
                     if (SRS.settings().dropQuantities) applyQuantities(event.drops);
+                    addRandomItem(event);
                 }
             });
             GameEvents.addListener(MobPrivateLootTableDropsEvent.class, new GameEventListener<MobPrivateLootTableDropsEvent>() {
@@ -182,6 +190,36 @@ public final class DropRandomizer {
         if (SRS.settings().dropQuantities) {
             applyQuantities(event.objectDrops);
         }
+    }
+
+    // ===== Random item =====
+
+    /** Every obtainable item that can be dropped as the random bonus item. */
+    private static synchronized List<Item> randomItemPool() {
+        if (randomItemPool == null) {
+            List<Item> pool = new ArrayList<>();
+            for (Item item : ItemRegistry.getItems()) {
+                if (item == null || item.type == Item.Type.QUEST || !ItemRegistry.isObtainable(item.getID())) continue;
+                if (SRS.isItemExcluded(item.getStringID())) continue;
+                pool.add(item);
+            }
+            randomItemPool = pool;
+        }
+        return randomItemPool;
+    }
+
+    private static void addRandomItem(MobLootTableDropsEvent event) {
+        SRSSettings s = SRS.settings();
+        if (!s.randomItemDrop || event.drops == null || event.mob == null) return;
+        if (event.mob.isPlayer || event.mob.isSummoned || event.mob.isFollowing()) return;
+        if (GameRandom.globalRandom.nextFloat() >= s.randomItemDropChance) return;
+        List<Item> pool = randomItemPool();
+        if (pool.isEmpty()) return;
+        event.drops.add(new InventoryItem(pool.get(GameRandom.globalRandom.nextInt(pool.size())), 1));
+    }
+
+    private static String formatPercent(float chance) {
+        return String.format(java.util.Locale.ROOT, "%.1f%%", chance * 100);
     }
 
     public static float quantityFactor(String itemStringID) {
