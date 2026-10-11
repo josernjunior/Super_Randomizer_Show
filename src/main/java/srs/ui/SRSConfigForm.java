@@ -158,8 +158,8 @@ public class SRSConfigForm extends Form {
         section("4 - Lojas");
         check(0, "Embaralhar os itens que os NPCs de cidade vendem e compram", s -> s.shops, (s, v) -> s.shops = v, null);
 
-        section("5 - Dano das armas");
-        check(0, "Randomizar o dano das armas", s -> s.weaponDamage, (s, v) -> s.weaponDamage = v, null);
+        section("5 - Danos");
+        check(0, "5.1 - Armas", s -> s.weaponDamage, (s, v) -> s.weaponDamage = v, null);
         Map<String, String> modes = new LinkedHashMap<>();
         modes.put("multiplier", "Multiplicador aleatório");
         modes.put("shuffle", "Trocar entre armas de força parecida");
@@ -168,7 +168,45 @@ public class SRSConfigForm extends Form {
         slider(1, "Multiplicador mínimo (modo multiplicador)", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.weaponDamageMin, (s, v) -> s.weaponDamageMin = v);
         slider(1, "Multiplicador máximo (modo multiplicador)", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.weaponDamageMax, (s, v) -> s.weaponDamageMax = v);
 
-        section("6 - Chance de crítico");
+        flow.next(4);
+        check(0, "5.2 - Dano dos inimigos", s -> s.enemyDamage, (s, v) -> s.enemyDamage = v, null);
+        Map<String, String> enemyModes = new LinkedHashMap<>();
+        enemyModes.put("multiplier", "Multiplicador aleatório");
+        enemyModes.put("preswap", "Usar o dano do inimigo antes da troca");
+        dropdown(1, "Modo:", enemyModes, s -> s.enemyDamageMode, (s, v) -> s.enemyDamageMode = v, () -> edit.enemyDamage);
+        label(1, "As barras valem nos dois modos: no \"antes da troca\" elas multiplicam o dano do inimigo original (x1,0 e x1,0 = dano igual ao dele).");
+        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.enemyDamageMin, (s, v) -> s.enemyDamageMin = v);
+        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.enemyDamageMax, (s, v) -> s.enemyDamageMax = v);
+
+        flow.next(4);
+        check(0, "5.3 - Dano dos chefes", s -> s.bossDamage, (s, v) -> s.bossDamage = v, null);
+        Map<String, String> bossModes = new LinkedHashMap<>();
+        bossModes.put("multiplier", "Multiplicador aleatório");
+        bossModes.put("preswap", "Usar o dano do chefe antes da troca");
+        dropdown(1, "Modo:", bossModes, s -> s.bossDamageMode, (s, v) -> s.bossDamageMode = v, () -> edit.bossDamage);
+        label(1, "As barras valem nos dois modos: no \"antes da troca\" elas multiplicam o dano do chefe original (x1,0 e x1,0 = dano igual ao dele).");
+        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.bossDamageMin, (s, v) -> s.bossDamageMin = v);
+        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.bossDamageMax, (s, v) -> s.bossDamageMax = v);
+
+        section("6 - Vida");
+        label(0, "Em todos os itens abaixo, as barras valem nos dois modos: no \"antes da troca\" elas multiplicam a vida do mob original (x1,0 e x1,0 = vida igual à dele).");
+        healthBlock("6.1 - Vida dos inimigos", "inimigo", s -> s.enemyHealth, (s, v) -> s.enemyHealth = v,
+                s -> s.enemyHealthMode, (s, v) -> s.enemyHealthMode = v, s -> s.enemyHealthMin, (s, v) -> s.enemyHealthMin = v,
+                s -> s.enemyHealthMax, (s, v) -> s.enemyHealthMax = v);
+        healthBlock("6.2 - Vida dos aldeões", "aldeão", s -> s.villagerHealth, (s, v) -> s.villagerHealth = v,
+                s -> s.villagerHealthMode, (s, v) -> s.villagerHealthMode = v, s -> s.villagerHealthMin, (s, v) -> s.villagerHealthMin = v,
+                s -> s.villagerHealthMax, (s, v) -> s.villagerHealthMax = v);
+        healthBlock("6.3 - Vida dos bichos", "bicho", s -> s.critterHealth, (s, v) -> s.critterHealth = v,
+                s -> s.critterHealthMode, (s, v) -> s.critterHealthMode = v, s -> s.critterHealthMin, (s, v) -> s.critterHealthMin = v,
+                s -> s.critterHealthMax, (s, v) -> s.critterHealthMax = v);
+        healthBlock("6.4 - Vida dos animais", "animal", s -> s.animalHealth, (s, v) -> s.animalHealth = v,
+                s -> s.animalHealthMode, (s, v) -> s.animalHealthMode = v, s -> s.animalHealthMin, (s, v) -> s.animalHealthMin = v,
+                s -> s.animalHealthMax, (s, v) -> s.animalHealthMax = v);
+        healthBlock("6.5 - Vida dos chefes", "chefe", s -> s.bossHealth, (s, v) -> s.bossHealth = v,
+                s -> s.bossHealthMode, (s, v) -> s.bossHealthMode = v, s -> s.bossHealthMin, (s, v) -> s.bossHealthMin = v,
+                s -> s.bossHealthMax, (s, v) -> s.bossHealthMax = v);
+
+        section("7 - Chance de crítico");
         check(0, "Randomizar o crítico de armas e equipamentos", s -> s.critChance, (s, v) -> s.critChance = v, null);
         slider(1, "Crítico extra mínimo em cada arma", 0.0F, 1.0F, 0.01F, PERCENT, s -> s.weaponCritMin, (s, v) -> s.weaponCritMin = v);
         slider(1, "Crítico extra máximo em cada arma", 0.0F, 1.0F, 0.01F, PERCENT, s -> s.weaponCritMax, (s, v) -> s.weaponCritMax = v);
@@ -176,18 +214,18 @@ public class SRSConfigForm extends Form {
         slider(1, "Multiplicador máximo do crítico dos equipamentos", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentCritMultMax, (s, v) -> s.equipmentCritMultMax = v);
         slider(1, "Crítico extra máximo por armadura/acessório", 0.0F, 0.5F, 0.01F, PERCENT, s -> s.equipmentCritBonusMax, (s, v) -> s.equipmentCritBonusMax = v);
 
-        section("7 - Bônus de conjunto");
+        section("8 - Bônus de conjunto");
         check(0, "Trocar os bônus de conjunto entre as armaduras", s -> s.armorSetBonuses, (s, v) -> s.armorSetBonuses = v, null);
 
-        section("8 - Efeitos de equipamentos");
+        section("9 - Efeitos de equipamentos");
         check(0, "Trocar os efeitos entre acessórios e entre peças de armadura do mesmo slot", s -> s.equipmentEffects, (s, v) -> s.equipmentEffects = v, null);
 
-        section("9 - % de dano dos equipamentos");
+        section("10 - % de dano dos equipamentos");
         check(0, "Randomizar o bônus de dano dos equipamentos", s -> s.equipmentDamage, (s, v) -> s.equipmentDamage = v, null);
         slider(1, "Multiplicador mínimo", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentDamageMultMin, (s, v) -> s.equipmentDamageMultMin = v);
         slider(1, "Multiplicador máximo", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentDamageMultMax, (s, v) -> s.equipmentDamageMultMax = v);
 
-        section("10 - Visuais");
+        section("11 - Visuais");
         check(0, "Trocar as texturas (um mob vira outro mob inteiro, um capacete vira outro capacete...)", s -> s.visuals, (s, v) -> s.visuals = v, null);
         label(1, "O que trocar:");
         listChecks(2, VISUAL_FOLDERS, s -> s.visualFolders, (s, v) -> s.visualFolders = v, () -> edit.visuals);
@@ -195,17 +233,17 @@ public class SRSConfigForm extends Form {
         check(0, "Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com braços de zumbi). Funciona mesmo com os visuais desligados.",
                 s -> s.funnyBuggedSwap, (s, v) -> s.funnyBuggedSwap = v, null);
 
-        section("11 - Projéteis");
+        section("12 - Projéteis");
         check(0, "Trocar os projéteis de armas, inimigos e chefes", s -> s.projectiles, (s, v) -> s.projectiles = v, null);
 
-        section("12 - Traduções");
+        section("13 - Traduções");
         check(0, "Embaralhar os textos do jogo", s -> s.translations, (s, v) -> s.translations = v, null);
         Map<String, String> translationModes = new LinkedHashMap<>();
         translationModes.put("entries", "Trocar textos inteiros (nomes continuam legíveis)");
         translationModes.put("words", "Trocar palavras de lugar (caótico)");
         dropdown(1, "Modo:", translationModes, s -> s.translationMode, (s, v) -> s.translationMode = v, () -> edit.translations);
 
-        section("13 - Sons");
+        section("14 - Sons");
         check(0, "Trocar os sons dentro de cada categoria", s -> s.sounds, (s, v) -> s.sounds = v, null);
         label(1, "Categorias:");
         listChecks(2, SOUND_CATEGORIES, s -> s.soundCategories, (s, v) -> s.soundCategories = v, () -> edit.sounds);
@@ -219,6 +257,21 @@ public class SRSConfigForm extends Form {
         content.setContentBox(new java.awt.Rectangle(content.getWidth(), flow.next()));
         content.setScrollY(0);
         refresh();
+    }
+
+    /** One health option: on/off, mode and the min/max multiplier sliders. */
+    private void healthBlock(String title, String who, Predicate<SRSSettings> enabledGet, BiConsumer<SRSSettings, Boolean> enabledSet,
+                             Function<SRSSettings, String> modeGet, BiConsumer<SRSSettings, String> modeSet,
+                             Function<SRSSettings, Float> minGet, BiConsumer<SRSSettings, Float> minSet,
+                             Function<SRSSettings, Float> maxGet, BiConsumer<SRSSettings, Float> maxSet) {
+        flow.next(4);
+        check(0, title, enabledGet, enabledSet, null);
+        Map<String, String> modes = new LinkedHashMap<>();
+        modes.put("multiplier", "Multiplicador aleatório");
+        modes.put("preswap", "Usar a vida do " + who + " antes da troca");
+        dropdown(1, "Modo:", modes, modeGet, modeSet, () -> enabledGet.test(edit));
+        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, minGet, minSet);
+        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, maxGet, maxSet);
     }
 
     private int x(int indent) {

@@ -25,6 +25,17 @@ public final class MobPools {
         HOSTILE, CRITTER, ANIMAL, BOSS, TOWN
     }
 
+    /**
+     * Boss "starter" mobs only spawn the real fighters, which are the ones that hit and get hit:
+     * their damage and health randomization also has to reach those fighters.
+     */
+    private static final Map<String, String[]> STARTER_FIGHTERS = new HashMap<>();
+
+    static {
+        STARTER_FIGHTERS.put("sageandgrit", new String[]{"sage", "grit"});
+        STARTER_FIGHTERS.put("nightswarm", new String[]{"nightswarmbat"});
+    }
+
     private static final Map<Pool, List<String>> pools = new HashMap<>();
     private static final Map<String, Pool> poolOf = new HashMap<>();
     private static final Map<String, Class<?>> mobClasses = new HashMap<>();
@@ -100,6 +111,11 @@ public final class MobPools {
     public static Pool poolOf(String stringID) {
         build();
         return poolOf.get(stringID);
+    }
+
+    /** The mobs a starter boss spawns to fight, or null if the boss fights by itself. */
+    public static String[] fighters(String bossID) {
+        return STARTER_FIGHTERS.get(bossID);
     }
 
     public static Class<?> mobClass(String stringID) {

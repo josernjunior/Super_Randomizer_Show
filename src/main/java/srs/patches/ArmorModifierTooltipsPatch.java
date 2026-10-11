@@ -8,7 +8,7 @@ import necesse.inventory.item.armorItem.ArmorItem;
 import net.bytebuddy.asm.Advice;
 import srs.random.EquipmentRandomizer;
 
-/** Features 6, 8 and 9: armor tooltips show the swapped and randomized modifiers. */
+/** Features 7, 9 and 10: armor tooltips show the swapped and randomized modifiers. */
 @ModMethodPatch(target = ArmorItem.class, name = "addModifierTooltips", arguments = {ItemStatTipList.class, InventoryItem.class, InventoryItem.class, Mob.class})
 public class ArmorModifierTooltipsPatch {
 

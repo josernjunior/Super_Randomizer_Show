@@ -10,16 +10,19 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 | 2 | `drops` / `dropQuantities` / `randomItemDrop` | Troca a tabela de loot entre inimigos, chefes, bichos, rochas/minérios, árvores e plantas. Cada item dropado também recebe um multiplicador fixo de quantidade (`dropQuantityMin` a `dropQuantityMax`). Além disso, todo mob morto tem uma chance (`randomItemDropChance`, 1% por padrão) de dropar também um item aleatório de todo o jogo. |
 | 3 | `recipes` | Embaralha os ingredientes das receitas. Com `recipesSameStation = true`, a troca só acontece entre receitas da mesma estação de trabalho. |
 | 4 | `shops` | Embaralha os itens que os NPCs de cidade vendem e compram. |
-| 5 | `weaponDamage` | Dano das armas: `multiplier` (fator aleatório entre `weaponDamageMin` e `weaponDamageMax`), `shuffle` (troca o dano entre armas de força parecida) ou `chaos` (troca com qualquer arma do mesmo tipo de dano). |
-| 6 | `critChance` | Crítico extra em cada arma (`weaponCritMin` a `weaponCritMax`). O crítico que armaduras, acessórios e bônus de conjunto já davam é multiplicado, e cada um deles ainda pode ganhar até `equipmentCritBonusMax` a mais. |
-| 7 | `armorSetBonuses` | Troca os bônus de conjunto entre as armaduras. |
-| 8 | `equipmentEffects` | Troca os efeitos entre acessórios e entre peças de armadura do mesmo slot. Cada peça mantém o próprio valor de armadura. |
-| 9 | `equipmentDamage` | Multiplica o % de dano extra que os equipamentos dão. |
-| 10 | `visuals` | Troca as texturas de itens, armas, armaduras, cosméticos, mobs, NPCs e projéteis. Só troca entre imagens compatíveis, então um mob vira outro mob inteiro e um capacete vira outro capacete. As pastas usadas ficam em `visualFolders`. |
-| 10b | `funnyBuggedSwap` | **Troca Bugada Divertida** (desligada por padrão): as partes dos mobs (corpo, braços, sombra) trocam separadas umas das outras, criando misturas como um slime com braços de zumbi. Funciona mesmo com `visuals` desligado. |
-| 11 | `projectiles` | Troca os projéteis de armas, inimigos e chefes. O substituto mantém a posição, a direção, a velocidade, o alcance e o dano do original. |
-| 12 | `translations` | Embaralha os textos do jogo: `entries` troca textos inteiros dentro da mesma categoria; `words` troca as palavras de lugar. |
-| 13 | `sounds` | Troca os sons dentro de cada categoria: `music`, `animals`, `creatures`, `environment`, `weather`, `weapons`, `impacts`, `interface`, `bosses`, `notes` e `other`. As categorias usadas ficam em `soundCategories`. |
+| 5.1 | `weaponDamage` | Dano das armas: `multiplier` (fator aleatório entre `weaponDamageMin` e `weaponDamageMax`), `shuffle` (troca o dano entre armas de força parecida) ou `chaos` (troca com qualquer arma do mesmo tipo de dano). |
+| 5.2 | `enemyDamage` | Dano dos inimigos: `multiplier` (fator aleatório entre `enemyDamageMin` e `enemyDamageMax`) ou `preswap` (padrão): o inimigo que trocou de lugar bate com a força do inimigo que estava ali antes. As barras de mínimo/máximo valem nos dois modos; no `preswap` elas multiplicam o dano do inimigo original, e com 1.0 e 1.0 o dano fica igual ao dele. O mod mede o dano base de cada inimigo ao iniciar, e a tabela fica no spoiler. |
+| 5.3 | `bossDamage` | Dano dos chefes, com os mesmos modos e barras (`bossDamageMode`, `bossDamageMin`, `bossDamageMax`). No `preswap`, o chefe invocado no lugar de outro bate com a força do chefe original, multiplicada pelas barras. |
+| 6 | `enemyHealth` / `villagerHealth` / `critterHealth` / `animalHealth` / `bossHealth` | Vida máxima de inimigos (6.1), aldeões (6.2), bichos (6.3), animais (6.4) e chefes (6.5). Cada grupo tem os modos `multiplier` (fator aleatório) ou `preswap` (padrão): o mob que trocou de lugar fica com a vida do mob que estava ali antes. As barras de mínimo/máximo (`...HealthMin`/`...HealthMax`, padrão 0,8 a 1,2) valem nos dois modos. |
+| 7 | `critChance` | Crítico extra em cada arma (`weaponCritMin` a `weaponCritMax`). O crítico que armaduras, acessórios e bônus de conjunto já davam é multiplicado, e cada um deles ainda pode ganhar até `equipmentCritBonusMax` a mais. |
+| 8 | `armorSetBonuses` | Troca os bônus de conjunto entre as armaduras. |
+| 9 | `equipmentEffects` | Troca os efeitos entre acessórios e entre peças de armadura do mesmo slot. Cada peça mantém o próprio valor de armadura. |
+| 10 | `equipmentDamage` | Multiplica o % de dano extra que os equipamentos dão. |
+| 11 | `visuals` | Troca as texturas de itens, armas, armaduras, cosméticos, mobs, NPCs e projéteis. Só troca entre imagens compatíveis, então um mob vira outro mob inteiro e um capacete vira outro capacete. As pastas usadas ficam em `visualFolders`. |
+| 11b | `funnyBuggedSwap` | **Troca Bugada Divertida** (desligada por padrão): as partes dos mobs (corpo, braços, sombra) trocam separadas umas das outras, criando misturas como um slime com braços de zumbi. Funciona mesmo com `visuals` desligado. |
+| 12 | `projectiles` | Troca os projéteis de armas, inimigos e chefes. O substituto mantém a posição, a direção, a velocidade, o alcance e o dano do original. |
+| 13 | `translations` | Embaralha os textos do jogo: `entries` troca textos inteiros dentro da mesma categoria; `words` troca as palavras de lugar. |
+| 14 | `sounds` | Troca os sons dentro de cada categoria: `music`, `animals`, `creatures`, `environment`, `weather`, `weapons`, `impacts`, `interface`, `bosses`, `notes` e `other`. As categorias usadas ficam em `soundCategories`. |
 
 ## Configuração
 
@@ -28,7 +31,7 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 No menu principal, abra **Mods**, clique em **Super Randomizer Show** e depois no botão **Configurar randomizer**, no fim do painel da direita. A tela de configuração tem:
 
 - a seed, com um botão **Sortear**, que pede confirmação antes de trocar;
-- uma caixa para ligar/desligar cada uma das 13 opções; quando uma opção está desligada, as sub-opções dela ficam acinzentadas;
+- uma caixa para ligar/desligar cada uma das 14 seções; quando uma opção está desligada, as sub-opções dela ficam acinzentadas;
 - caixas para escolher quais chefes e quais NPCs de cidade podem trocar entre si, com o nome de cada um;
 - controles deslizantes para os valores (multiplicadores, porcentagens e a chance do item aleatório) e listas para escolher os modos;
 - uma seção **Avançado** com o spoiler e as listas de mobs e itens que nunca devem ser trocados;

@@ -12,7 +12,7 @@ import srs.core.SeedRandom;
 import srs.core.Spoiler;
 
 /**
- * Feature 13: swaps sound files inside the same category (music with music, animal sounds with animal sounds,
+ * Feature 14: swaps sound files inside the same category (music with music, animal sounds with animal sounds,
  * weapon sounds with weapon sounds, ...).
  */
 public final class SoundRandomizer {
@@ -48,7 +48,7 @@ public final class SoundRandomizer {
                 groups.computeIfAbsent(category, k -> new ArrayList<>()).add(path);
             }
         }
-        List<String> lines = Spoiler.section("13 - Sons (som original -> som tocado)");
+        List<String> lines = Spoiler.section("14 - Sons (som original -> som tocado)");
         List<String> categories = new ArrayList<>(groups.keySet());
         Collections.sort(categories);
         for (String category : categories) {

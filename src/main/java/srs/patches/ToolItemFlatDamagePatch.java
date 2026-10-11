@@ -7,7 +7,7 @@ import necesse.inventory.item.toolItem.ToolItem;
 import net.bytebuddy.asm.Advice;
 import srs.random.WeaponRandomizer;
 
-/** Features 5 and 6: weapon damage and weapon crit chance. */
+/** Features 5.1 and 7: weapon damage and weapon crit chance. */
 @ModMethodPatch(target = ToolItem.class, name = "getFlatAttackDamage", arguments = {InventoryItem.class})
 public class ToolItemFlatDamagePatch {
 

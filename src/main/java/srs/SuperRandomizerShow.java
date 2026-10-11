@@ -16,6 +16,8 @@ import srs.core.Spoiler;
 import srs.network.PacketSRSConfig;
 import srs.random.DropRandomizer;
 import srs.random.EquipmentRandomizer;
+import srs.random.MobDamageRandomizer;
+import srs.random.MobHealthRandomizer;
 import srs.random.MobSpawnRandomizer;
 import srs.random.ProjectileRandomizer;
 import srs.random.ShopRandomizer;
@@ -83,6 +85,8 @@ public class SuperRandomizerShow {
     public void postInit() {
         MobPools.build();
         MobSpawnRandomizer.build();
+        MobDamageRandomizer.build();
+        MobHealthRandomizer.build();
         DropRandomizer.build();
         ShopRandomizer.build();
         WeaponRandomizer.build();

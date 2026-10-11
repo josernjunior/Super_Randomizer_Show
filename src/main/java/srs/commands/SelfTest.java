@@ -34,6 +34,8 @@ import necesse.level.maps.biomes.MobSpawnTable;
 import srs.core.MobPools;
 import srs.core.MobPools.Pool;
 import srs.core.SRS;
+import srs.random.MobDamageRandomizer;
+import srs.random.MobHealthRandomizer;
 import srs.random.MobSpawnRandomizer;
 import srs.random.ProjectileRandomizer;
 import srs.ui.MobChoices;
@@ -227,6 +229,63 @@ public final class SelfTest {
             log.accept("Armaduras equipadas: " + equipped + " (" + armorDiffs + " com valor de armadura diferente do original)");
         }
         log.accept("Equipamentos: " + buffs + " buffs aplicados, " + tooltips + " descricoes de armadura geradas");
+
+        // 5.2/5.3 - enemy and boss damage
+        int pooled = MobPools.get(Pool.HOSTILE).size() + MobPools.get(Pool.BOSS).size();
+        String example = null;
+        for (String id : MobPools.get(Pool.HOSTILE)) {
+            if (MobDamageRandomizer.getFactor(id) != 1.0F) {
+                example = id;
+                break;
+            }
+        }
+        String hitResult = "sem tipo com fator para testar";
+        if (example != null) {
+            Mob attackerMob = MobRegistry.getMob(MobRegistry.getMobID(example), level);
+            Mob targetMob = MobRegistry.getMob(MobRegistry.getMobID("human"), level);
+            try {
+                level.entityManager.addMob(attackerMob, x + 64, y);
+                level.entityManager.addMob(targetMob, x, y);
+                GameDamage scaled = MobDamageRandomizer.modify(new GameDamage(100.0F), attackerMob, targetMob);
+                float expected = 100.0F * MobDamageRandomizer.getFactor(example);
+                targetMob.isServerHit(new GameDamage(100.0F), x, y, 0.0F, attackerMob);
+                hitResult = Math.abs(scaled.damage - expected) < 0.01F
+                        ? "golpe de 100 virou " + Math.round(scaled.damage) + " (esperado " + Math.round(expected) + ")"
+                        : "ERRO: golpe de 100 virou " + scaled.damage + ", esperado " + expected;
+                if (!hitResult.startsWith("golpe")) failures.merge(hitResult, 1, Integer::sum);
+            } catch (Throwable e) {
+                fail(failures, "golpe de " + example, e);
+            } finally {
+                attackerMob.remove();
+                targetMob.remove();
+            }
+        }
+        log.accept("Dano de inimigos/chefes: " + MobDamageRandomizer.measuredCount() + " de " + pooled + " tipos com dano medido"
+                + (example == null ? "" : "; " + example + " (dano base " + MobDamageRandomizer.getBaseDamage(example) + ") bate x"
+                + String.format(java.util.Locale.ROOT, "%.2f", MobDamageRandomizer.getFactor(example))) + "; " + hitResult);
+
+        // 6 - health: a fresh mob of each group must start with the randomized max health
+        List<String> healthLines = new ArrayList<>();
+        for (Pool pool : new Pool[]{Pool.HOSTILE, Pool.TOWN, Pool.CRITTER, Pool.ANIMAL, Pool.BOSS}) {
+            String id = null;
+            for (String candidate : MobPools.get(pool)) {
+                if (MobHealthRandomizer.getFactor(candidate) != 1.0F) {
+                    id = candidate;
+                    break;
+                }
+            }
+            if (id == null) continue;
+            Mob mob = MobRegistry.getMob(MobRegistry.getMobID(id), level);
+            if (mob == null) continue;
+            int flat = mob.getMaxHealthFlat();
+            int max = mob.getMaxHealth();
+            int expected = Math.max(1, Math.round(flat * MobHealthRandomizer.getFactor(id)));
+            healthLines.add(id + " " + flat + "->" + max);
+            if (Math.abs(max - expected) > 1 || mob.getHealth() != max) {
+                failures.merge("vida de " + id + ": " + flat + " -> " + max + " (esperado " + expected + ", vida atual " + mob.getHealth() + ")", 1, Integer::sum);
+            }
+        }
+        log.accept("Vida: " + (healthLines.isEmpty() ? "nenhum grupo com fator" : String.join(", ", healthLines)));
 
         String[][] bosses = MobChoices.bosses(SRS.settings().bossPool);
         String[][] npcs = MobChoices.townNPCs(SRS.settings().townNPCPool);

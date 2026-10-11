@@ -6,7 +6,7 @@ import necesse.inventory.item.armorItem.ArmorModifiers;
 import net.bytebuddy.asm.Advice;
 import srs.random.EquipmentRandomizer;
 
-/** Features 6 and 9: randomizes crit/damage values of the armor piece being equipped or inspected. */
+/** Features 7 and 10: randomizes crit/damage values of the armor piece being equipped or inspected. */
 @ModConstructorPatch(target = ArmorModifiers.class, arguments = {ModifierValue[].class})
 public class ArmorModifiersConstructorPatch {
 

@@ -29,7 +29,7 @@ import srs.core.SeedRandom;
 import srs.core.Spoiler;
 
 /**
- * Features 6 (equipment crit), 7 (armor set bonuses), 8 (equipment effects) and 9 (equipment damage %).
+ * Features 7 (equipment crit), 8 (armor set bonuses), 9 (equipment effects) and 10 (equipment damage %).
  * <ul>
  * <li>Set bonuses: the set bonus buff of every set helmet is swapped with another set's.</li>
  * <li>Effects: trinket buffs are swapped between trinkets, and the stat modifiers of armor pieces are swapped
@@ -63,7 +63,7 @@ public final class EquipmentRandomizer {
             buildArmorEffectMapping();
         }
         if (transformValues) {
-            List<String> lines = Spoiler.section("6/9 - Critico e % de dano de equipamentos");
+            List<String> lines = Spoiler.section("7/10 - Critico e % de dano de equipamentos");
             if (s.critChance) {
                 lines.add("Critico ja existente multiplicado por " + s.equipmentCritMultMin + " a " + s.equipmentCritMultMax
                         + "; cada peca/acessorio/bonus de conjunto ganha +0% a +" + Math.round(s.equipmentCritBonusMax * 100) + "% de critico.");
@@ -95,7 +95,7 @@ public final class EquipmentRandomizer {
         List<Integer> order = new ArrayList<>();
         for (int i = 0; i < ids.size(); i++) order.add(i);
         Collections.shuffle(order, SeedRandom.rng("equipment:setbonus"));
-        List<String> lines = Spoiler.section("7 - Bonus de conjunto (capacete: bonus original -> novo)");
+        List<String> lines = Spoiler.section("8 - Bonus de conjunto (capacete: bonus original -> novo)");
         for (int i = 0; i < ids.size(); i++) {
             String newBuff = buffs.get(order.get(i));
             SetHelmetArmorItem helmet = helmets.get(ids.get(i));
@@ -118,7 +118,7 @@ public final class EquipmentRandomizer {
         List<Integer> order = new ArrayList<>();
         for (int i = 0; i < ids.size(); i++) order.add(i);
         Collections.shuffle(order, SeedRandom.rng("equipment:trinkets"));
-        List<String> lines = Spoiler.section("8 - Efeitos de acessorios (acessorio: efeito novo)");
+        List<String> lines = Spoiler.section("9 - Efeitos de acessorios (acessorio: efeito novo)");
         for (int i = 0; i < ids.size(); i++) {
             String[] newEffects = effects.get(order.get(i));
             Reflect.set(SimpleTrinketItem.class, trinkets.get(ids.get(i)), "buffStringIDs", newEffects);
@@ -134,7 +134,7 @@ public final class EquipmentRandomizer {
             if (armor.isCosmetic || armor.armorType == null || !isCandidate(item)) continue;
             bySlot.computeIfAbsent(armor.armorType, k -> new ArrayList<>()).add(item.getStringID());
         }
-        List<String> lines = Spoiler.section("8 - Efeitos de pecas de armadura (peca usada -> efeitos de)");
+        List<String> lines = Spoiler.section("9 - Efeitos de pecas de armadura (peca usada -> efeitos de)");
         for (ArmorItem.ArmorType slot : ArmorItem.ArmorType.values()) {
             List<String> ids = bySlot.get(slot);
             if (ids == null) continue;

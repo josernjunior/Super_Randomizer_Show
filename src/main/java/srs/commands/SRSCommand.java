@@ -151,10 +151,13 @@ public class SRSCommand extends ModularChatCommand {
                 log.add("Super Randomizer Show - seed " + s.seed);
                 log.add(" 1 Mobs: " + onOff(s.mobSpawns) + " | 2 Drops: " + onOff(s.drops) + " (qtd " + onOff(s.dropQuantities) + ")"
                         + " | 3 Receitas: " + onOff(s.recipes) + " | 4 Lojas: " + onOff(s.shops));
-                log.add(" 5 Dano armas: " + onOff(s.weaponDamage) + " | 6 Critico: " + onOff(s.critChance)
-                        + " | 7 Bonus conjunto: " + onOff(s.armorSetBonuses) + " | 8 Efeitos: " + onOff(s.equipmentEffects));
-                log.add(" 9 % dano equip.: " + onOff(s.equipmentDamage) + " | 10 Visuais: " + onOff(s.visuals) + " (Troca Bugada Divertida: " + onOff(s.funnyBuggedSwap) + ")"
-                        + " | 11 Projeteis: " + onOff(s.projectiles) + " | 12 Traducoes: " + onOff(s.translations) + " | 13 Sons: " + onOff(s.sounds));
+                log.add(" 5 Danos: armas " + onOff(s.weaponDamage) + ", inimigos " + onOff(s.enemyDamage) + ", chefes " + onOff(s.bossDamage)
+                        + " | 6 Vida: inimigos " + onOff(s.enemyHealth) + ", aldeoes " + onOff(s.villagerHealth) + ", bichos " + onOff(s.critterHealth)
+                        + ", animais " + onOff(s.animalHealth) + ", chefes " + onOff(s.bossHealth));
+                log.add(" 7 Critico: " + onOff(s.critChance) + " | 8 Bonus conjunto: " + onOff(s.armorSetBonuses) + " | 9 Efeitos: " + onOff(s.equipmentEffects)
+                        + " | 10 % dano equip.: " + onOff(s.equipmentDamage));
+                log.add(" 11 Visuais: " + onOff(s.visuals) + " (Troca Bugada Divertida: " + onOff(s.funnyBuggedSwap) + ")"
+                        + " | 12 Projeteis: " + onOff(s.projectiles) + " | 13 Traducoes: " + onOff(s.translations) + " | 14 Sons: " + onOff(s.sounds));
                 if (!pending().fingerprint().equals(s.fingerprint())) {
                     log.add("Ha mudancas salvas no arquivo que so valem depois de reiniciar (seed salva: " + pending().seed + ").");
                 }

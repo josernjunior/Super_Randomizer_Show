@@ -19,7 +19,7 @@ import srs.core.SeedRandom;
 import srs.core.Spoiler;
 
 /**
- * Feature 5 (weapon damage) and the weapon half of feature 6 (crit chance).
+ * Feature 5.1 (weapon damage) and the weapon half of feature 7 (crit chance).
  * Applied in ToolItem.getFlatAttackDamage, which every weapon attack, projectile and tooltip goes through.
  */
 public final class WeaponRandomizer {
@@ -68,7 +68,7 @@ public final class WeaponRandomizer {
         }
 
         String mode = s.weaponDamageMode == null ? "multiplier" : s.weaponDamageMode.toLowerCase();
-        List<String> lines = Spoiler.section("5/6 - Armas (modo " + mode + ": dano base original -> novo, critico extra)");
+        List<String> lines = Spoiler.section("5.1/7 - Armas (modo " + mode + ": dano base original -> novo, critico extra)");
         List<String> types = new ArrayList<>(byType.keySet());
         Collections.sort(types);
         for (String type : types) {

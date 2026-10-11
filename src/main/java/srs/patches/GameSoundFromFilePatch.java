@@ -6,7 +6,7 @@ import necesse.engine.sound.gameSound.GameSound;
 import net.bytebuddy.asm.Advice;
 import srs.random.SoundRandomizer;
 
-/** Feature 13: loads a different sound file than the one asked for. */
+/** Feature 14: loads a different sound file than the one asked for. */
 @ModMethodPatch(target = GameSound.class, name = "fromFileRaw", arguments = {String.class, SoundCooldown.class, boolean.class})
 public class GameSoundFromFilePatch {
 

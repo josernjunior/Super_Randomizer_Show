@@ -6,7 +6,7 @@ import necesse.entity.mobs.buffs.BuffEventSubscriber;
 import net.bytebuddy.asm.Advice;
 import srs.random.EquipmentRandomizer;
 
-/** Features 6 and 9: randomizes crit/damage values of trinket and set bonus buffs. */
+/** Features 7 and 10: randomizes crit/damage values of trinket and set bonus buffs. */
 @ModMethodPatch(target = ActiveBuff.class, name = "init", arguments = {BuffEventSubscriber.class})
 public class ActiveBuffInitPatch {
 
