@@ -16,7 +16,7 @@ public class SRSSettings extends ModSettings {
     public static final String DEFAULT_TOWN_NPC_POOL = "human,farmerhuman,blacksmithhuman,guardhuman,magehuman,gunsmithhuman,"
             + "alchemisthuman,hunterhuman,elderhuman,anglerhuman,pawnbrokerhuman,animalkeeperhuman,stylisthuman,"
             + "piratehuman,explorerhuman,minerhuman,traderhuman";
-    public static final String DEFAULT_VISUAL_FOLDERS = "items,mobs,player/armor,player/weapons,player/holditems,player/hair,projectiles";
+    public static final String DEFAULT_VISUAL_FOLDERS = "mobs,projectiles";
     public static final String DEFAULT_SOUND_CATEGORIES = "music,animals,creatures,environment,weather,weapons,impacts,interface,bosses,other";
 
     // Seed: 0 means "generate one on the next start", so every clean install gets its own random seed
@@ -34,7 +34,7 @@ public class SRSSettings extends ModSettings {
     // 2 - Drops
     public boolean drops = true;
     public boolean dropQuantities = true;
-    public float dropQuantityMin = 0.5F;
+    public float dropQuantityMin = 0.4F;
     public float dropQuantityMax = 2.5F;
     public boolean randomItemDrop = true;
     public float randomItemDropChance = 0.01F;
@@ -49,16 +49,16 @@ public class SRSSettings extends ModSettings {
     // 5 - Damage (5.1 weapons, 5.2 enemies, 5.3 bosses)
     public boolean weaponDamage = true;
     public String weaponDamageMode = "multiplier";
-    public float weaponDamageMin = 0.5F;
-    public float weaponDamageMax = 2.0F;
+    public float weaponDamageMin = 0.8F;
+    public float weaponDamageMax = 1.8F;
     public boolean enemyDamage = true;
     public String enemyDamageMode = "preswap";
-    public float enemyDamageMin = 0.8F;
-    public float enemyDamageMax = 1.2F;
+    public float enemyDamageMin = 0.6F;
+    public float enemyDamageMax = 0.8F;
     public boolean bossDamage = true;
     public String bossDamageMode = "preswap";
-    public float bossDamageMin = 0.8F;
-    public float bossDamageMax = 1.2F;
+    public float bossDamageMin = 0.6F;
+    public float bossDamageMax = 0.8F;
 
     // 6 - Health
     public boolean enemyHealth = true;
@@ -132,7 +132,7 @@ public class SRSSettings extends ModSettings {
     public float weaponCritMax = 0.15F;
     public float equipmentCritMultMin = 0.0F;
     public float equipmentCritMultMax = 2.5F;
-    public float equipmentCritBonusMax = 0.05F;
+    public float equipmentCritBonusMax = 0.04F;
 
     // 10 - Armor set bonuses
     public boolean armorSetBonuses = true;
@@ -146,9 +146,9 @@ public class SRSSettings extends ModSettings {
     public float equipmentDamageMultMax = 2.5F;
 
     // 13 - Visuals
-    public boolean visuals = false;
+    public boolean visuals = true;
     public String visualFolders = DEFAULT_VISUAL_FOLDERS;
-    public boolean funnyBuggedSwap = false;
+    public boolean funnyBuggedSwap = true;
 
     // 14 - Projectiles
     public boolean projectiles = true;
@@ -168,9 +168,11 @@ public class SRSSettings extends ModSettings {
 
     // 18 - Fishing
     public boolean fishingBaitPower = true;
-    public float fishingBaitPowerVariation = 0.5F;
+    public float fishingBaitPowerMin = 0.8F;
+    public float fishingBaitPowerMax = 1.2F;
     public boolean fishingRodPower = true;
-    public float fishingRodPowerVariation = 0.5F;
+    public float fishingRodPowerMin = 0.8F;
+    public float fishingRodPowerMax = 1.2F;
     public boolean fishingCatches = true;
     public String fishingCatchesMode = "fish";
 
@@ -255,9 +257,11 @@ public class SRSSettings extends ModSettings {
         data.addBoolean("questRewardsJournal", questRewardsJournal, "17.2 - Recompensas dos desafios do diario de aventura");
 
         data.addBoolean("fishingBaitPower", fishingBaitPower, "18 - Pesca: randomiza o poder de pesca das iscas");
-        data.addFloat("fishingBaitPowerVariation", fishingBaitPowerVariation, "Variacao maxima do poder das iscas, para mais ou para menos (0.5 = ate 50%)");
+        data.addFloat("fishingBaitPowerMin", fishingBaitPowerMin, "Multiplicador minimo do poder das iscas");
+        data.addFloat("fishingBaitPowerMax", fishingBaitPowerMax, "Multiplicador maximo do poder das iscas");
         data.addBoolean("fishingRodPower", fishingRodPower, "18 - Pesca: randomiza o poder de pesca das varas");
-        data.addFloat("fishingRodPowerVariation", fishingRodPowerVariation, "Variacao maxima do poder das varas, para mais ou para menos (0.5 = ate 50%)");
+        data.addFloat("fishingRodPowerMin", fishingRodPowerMin, "Multiplicador minimo do poder das varas");
+        data.addFloat("fishingRodPowerMax", fishingRodPowerMax, "Multiplicador maximo do poder das varas");
         data.addBoolean("fishingCatches", fishingCatches, "18 - Pesca: randomiza o que e pescado");
         data.addSafeString("fishingCatchesMode", fishingCatchesMode, "fish = cada peixe vira outro peixe | all = cada coisa pescada vira um item qualquer do jogo");
 
@@ -357,9 +361,11 @@ public class SRSSettings extends ModSettings {
         questRewardsJournal = data.getBoolean("questRewardsJournal", questRewardsJournal, false);
 
         fishingBaitPower = data.getBoolean("fishingBaitPower", fishingBaitPower, false);
-        fishingBaitPowerVariation = data.getFloat("fishingBaitPowerVariation", fishingBaitPowerVariation, false);
+        fishingBaitPowerMin = data.getFloat("fishingBaitPowerMin", fishingBaitPowerMin, false);
+        fishingBaitPowerMax = data.getFloat("fishingBaitPowerMax", fishingBaitPowerMax, false);
         fishingRodPower = data.getBoolean("fishingRodPower", fishingRodPower, false);
-        fishingRodPowerVariation = data.getFloat("fishingRodPowerVariation", fishingRodPowerVariation, false);
+        fishingRodPowerMin = data.getFloat("fishingRodPowerMin", fishingRodPowerMin, false);
+        fishingRodPowerMax = data.getFloat("fishingRodPowerMax", fishingRodPowerMax, false);
         fishingCatches = data.getBoolean("fishingCatches", fishingCatches, false);
         fishingCatchesMode = data.getSafeString("fishingCatchesMode", fishingCatchesMode, false);
 

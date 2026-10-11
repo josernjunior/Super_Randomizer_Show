@@ -22,9 +22,13 @@ import necesse.inventory.InventoryItem;
 import necesse.inventory.item.Item;
 import necesse.inventory.lootTable.LootTable;
 import necesse.level.gameObject.GameObject;
+import necesse.level.gameObject.SingleRockObject;
+import necesse.level.gameObject.SingleRockSmall;
+import necesse.level.maps.Level;
 import srs.SRSSettings;
 import srs.core.MobPools;
 import srs.core.MobPools.Pool;
+import srs.core.Reflect;
 import srs.core.SRS;
 import srs.core.SeedRandom;
 import srs.core.Spoiler;
@@ -109,22 +113,58 @@ public final class DropRandomizer {
         }
     }
 
+    /**
+     * Objects only swap drops with objects that drop the same kind of thing. Objects that drop nothing on their own
+     * stay out: the second tile of 2-tile rocks and crystal clusters ("...r", its drops come from the first tile),
+     * and plain grass, withered grass, cobwebs and other grass that doesn't drop its own item.
+     */
     private static String objectGroup(GameObject object) {
+        if (object.getClass().getSimpleName().endsWith("RObject")) return null;
         Class<?> c = object.getClass();
         while (c != null && c != GameObject.class) {
             String name = c.getSimpleName();
             if (name.contains("Sapling") || name.contains("Seed") || name.contains("Wall") || name.contains("Door")) return null;
             if (name.equals("RockObject") || name.equals("RockOreObject") || name.startsWith("SingleRock") || name.startsWith("SingleOreRock")
                     || name.startsWith("CrystalCluster")) {
-                return "rochas";
+                return isDecorativeRock(object) ? null : "rochas";
             }
             if (name.equals("TreeObject") || name.equals("FruitTreeObject")) return "arvores";
-            if (name.equals("GrassObject") || name.equals("FruitBushObject") || name.contains("WildFlower") || name.contains("Mushroom")) {
-                return "plantas";
-            }
+            if (name.contains("WildFlower") || name.contains("Mushroom")) return "flores";
+            if (name.equals("FruitBushObject")) return "arbustos";
+            if (name.equals("GrassObject")) return dropsOwnItem(object) ? "plantas" : null;
             c = c.getSuperclass();
         }
         return null;
+    }
+
+    /** Rocks registered with no natural drops (e.g. slimecaverocksmall), when they use their base class's loot rule. */
+    private static boolean isDecorativeRock(GameObject object) {
+        Class<?> base = object instanceof SingleRockObject ? SingleRockObject.class : object instanceof SingleRockSmall ? SingleRockSmall.class : null;
+        if (base == null) return false;
+        try {
+            if (object.getClass().getMethod("getLootTable", Level.class, int.class, int.class, int.class).getDeclaringClass() != base) return false;
+            int maxDrop = Reflect.<Integer>get(base, object, "maxDropAmount");
+            Object type = Reflect.get(base, object, "type");
+            return maxDrop <= 0 || type == null || Reflect.get(type, "droppedStone") == null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** True when the object uses GameObject's default loot: its own item, which exists and can be obtained. */
+    private static boolean dropsOwnItem(GameObject object) {
+        String id = object.getStringID();
+        if (!ItemRegistry.itemExists(id) || !ItemRegistry.isObtainable(ItemRegistry.getItemID(id))) return false;
+        try {
+            return object.getClass().getMethod("getLootTable", Level.class, int.class, int.class, int.class).getDeclaringClass() == GameObject.class;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
+    /** Object stringID -> object whose drops it gives (used by the self-test). */
+    public static Map<String, String> getObjectMapping() {
+        return objectMapping;
     }
 
     // ===== Mob loot (called from patches) =====

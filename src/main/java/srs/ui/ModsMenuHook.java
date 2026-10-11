@@ -3,6 +3,7 @@ package srs.ui;
 import java.awt.Rectangle;
 import necesse.engine.modLoader.LoadedMod;
 import necesse.gfx.forms.Form;
+import necesse.gfx.forms.components.FormComponentList;
 import necesse.gfx.forms.components.FormContentBox;
 import necesse.gfx.forms.components.FormInputSize;
 import necesse.gfx.forms.components.FormTextButton;
@@ -27,10 +28,10 @@ public final class ModsMenuHook {
             FormTextButton button = info.addComponent(new FormTextButton("Configurar randomizer", "Abrir as opções do Super Randomizer Show",
                     5, y, info.getMinContentWidth() - 10, FormInputSize.SIZE_32, ButtonColor.BASE));
             // Not a temporary component: the screen must survive switching to a confirmation dialog and back.
-            // SRSConfigForm removes itself when it closes.
+            // SRSConfigForm removes its screen (the form and its tabs) when it closes.
             button.onClicked(e -> {
-                SRSConfigForm form = modsForm.addComponent(new SRSConfigForm(modsForm, modsMain));
-                modsForm.makeCurrent(form);
+                FormComponentList screen = modsForm.addComponent(SRSConfigForm.createScreen(modsForm, modsMain));
+                modsForm.makeCurrent(screen);
             });
             info.setContentBox(new Rectangle(box.width, y + 32 + 10));
         } catch (Exception e) {

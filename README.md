@@ -7,7 +7,7 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 | # | Opção no config | O que faz |
 |---|---|---|
 | 1 | `mobSpawns` | Troca onde aparecem inimigos (`mobSpawnHostiles`), bichos (`mobSpawnCritters`), animais como ovelhas, vacas, porcos, galinhas, avestruzes e pinguins (`mobSpawnAnimals`), NPCs de vilas e estruturas (`mobSpawnTownNPCs`, com a lista 1.1 `townNPCPool`) e chefes invocados por itens ou incursões (lista 1.2 `bossPool`; com a lista vazia, nenhum chefe troca). Cada um só troca com outro do mesmo grupo. Os animais e as criaturas colocadas na criação do mundo só mudam em mundos novos ou em áreas ainda não exploradas. |
-| 2 | `drops` / `dropQuantities` / `randomItemDrop` | Troca a tabela de loot entre inimigos, chefes, bichos, rochas/minérios, árvores e plantas. Cada item dropado também recebe um multiplicador fixo de quantidade (`dropQuantityMin` a `dropQuantityMax`). Além disso, todo mob morto tem uma chance (`randomItemDropChance`, 1% por padrão) de dropar também um item aleatório de todo o jogo. |
+| 2 | `drops` / `dropQuantities` / `randomItemDrop` | Troca a tabela de loot entre inimigos, chefes, bichos, rochas/minérios, árvores e plantas. Os objetos só trocam com outros do mesmo tipo que também dropam algo: flores e cogumelos entre si, arbustos de fruta entre si, plantas como taboa, junco e coral entre si. Grama comum, teia de aranha, rochas decorativas e a segunda metade das rochas grandes não entram, para nada ficar sem drop nem dropar em dobro. Cada item dropado também recebe um multiplicador fixo de quantidade (`dropQuantityMin` a `dropQuantityMax`). Além disso, todo mob morto tem uma chance (`randomItemDropChance`, 1% por padrão) de dropar também um item aleatório de todo o jogo. |
 | 3 | `recipes` | Embaralha os ingredientes das receitas. Com `recipesSameStation = true`, a troca só acontece entre receitas da mesma estação de trabalho. |
 | 4 | `shops` | Embaralha os itens que os NPCs de cidade vendem e compram. |
 | 5.1 | `weaponDamage` | Dano das armas: `multiplier` (fator aleatório entre `weaponDamageMin` e `weaponDamageMax`), `shuffle` (troca o dano entre armas de força parecida) ou `chaos` (troca com qualquer arma do mesmo tipo de dano). |
@@ -20,13 +20,13 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 | 10 | `armorSetBonuses` | Troca os bônus de conjunto entre as armaduras. |
 | 11 | `equipmentEffects` | Troca os efeitos entre acessórios e entre peças de armadura do mesmo slot. Cada peça mantém o próprio valor de armadura. |
 | 12 | `equipmentDamage` | Multiplica o % de dano extra que os equipamentos dão. |
-| 13 | `visuals` | Troca as texturas de itens, armas, armaduras, cosméticos, mobs, NPCs e projéteis. Só troca entre imagens compatíveis, então um mob vira outro mob inteiro e um capacete vira outro capacete. As pastas usadas ficam em `visualFolders`. |
-| 13b | `funnyBuggedSwap` | **Troca Bugada Divertida** (desligada por padrão): as partes dos mobs (corpo, braços, sombra) trocam separadas umas das outras, criando misturas como um slime com braços de zumbi. Funciona mesmo com `visuals` desligado. |
+| 13 | `visuals` | Troca as texturas de itens, armas, armaduras, cosméticos, mobs, NPCs e projéteis. Só troca entre imagens compatíveis, então um mob vira outro mob inteiro e um capacete vira outro capacete. As pastas usadas ficam em `visualFolders` (por padrão, só mobs e projéteis). |
+| 13b | `funnyBuggedSwap` | **Troca Bugada Divertida** (ligada por padrão): as partes dos mobs (corpo, braços, sombra) trocam separadas umas das outras, criando misturas como um slime com braços de zumbi. Funciona mesmo com `visuals` desligado. |
 | 14 | `projectiles` | Troca os projéteis de armas, inimigos e chefes. O substituto mantém a posição, a direção, a velocidade, o alcance e o dano do original. |
 | 15 | `translations` | Embaralha os textos do jogo: `entries` troca textos inteiros dentro da mesma categoria; `words` troca as palavras de lugar. |
 | 16 | `sounds` | Troca os sons dentro de cada categoria: `music`, `animals`, `creatures`, `environment`, `weather`, `weapons`, `impacts`, `interface`, `bosses`, `notes` e `other`. As categorias usadas ficam em `soundCategories`. |
 | 17 | `questRewards` / `questRewardsElder` / `questRewardsJournal` | **Recompensas aleatórias**: os itens que as quests dão viram itens aleatórios de todo o jogo, tanto nos objetivos do Mestre Ancião (17.1) quanto nos desafios do diário de aventura (17.2). A janela da quest já mostra a recompensa nova. A quantidade original é mantida (até uma pilha cheia); quando a recompensa era um item único e o sorteado é empilhável, vem um décimo de pilha. As Leather Dashers do primeiro objetivo continuam vindo junto com o item sorteado, porque o objetivo seguinte pede para equipá-las. |
-| 18 | `fishingBaitPower` / `fishingRodPower` / `fishingCatches` | **Pesca**. O poder de pesca de cada isca e de cada vara ganha um fator fixo, que pode subir ou descer até a variação máxima (`fishingBaitPowerVariation` e `fishingRodPowerVariation`, padrão 50%). A descrição do item mostra o valor novo. A pescaria (`fishingCatchesMode`) tem dois modos: `fish` (padrão), em que cada peixe vira outro peixe, e `all`, em que cada coisa pescada vira um item qualquer do jogo. Nos dois modos a troca é sempre a mesma para cada seed (por exemplo, toda carpa vira o mesmo item) e vale também para os aldeões que pescam. O desafio do diário "pescar um peixe-gelo" continua possível: pescar o item em que o peixe-gelo se transformou também conta. |
+| 18 | `fishingBaitPower` / `fishingRodPower` / `fishingCatches` | **Pesca**. O poder de pesca de cada isca e de cada vara é multiplicado por um fator fixo entre o mínimo e o máximo (`fishingBaitPowerMin`/`fishingBaitPowerMax` e `fishingRodPowerMin`/`fishingRodPowerMax`, padrão 0,8 a 1,2). A descrição do item mostra o valor novo. A pescaria (`fishingCatchesMode`) tem dois modos: `fish` (padrão), em que cada peixe vira outro peixe, e `all`, em que cada coisa pescada vira um item qualquer do jogo. Nos dois modos a troca é sempre a mesma para cada seed (por exemplo, toda carpa vira o mesmo item) e vale também para os aldeões que pescam. O desafio do diário "pescar um peixe-gelo" continua possível: pescar o item em que o peixe-gelo se transformou também conta. |
 
 ## Configuração
 
@@ -35,7 +35,7 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 No menu principal, abra **Mods**, clique em **Super Randomizer Show** e depois no botão **Configurar randomizer**, no fim do painel da direita. A tela de configuração tem:
 
 - a seed, com um botão **Sortear**, que pede confirmação antes de trocar;
-- uma caixa para ligar/desligar cada uma das 18 seções; quando uma opção está desligada, as sub-opções dela ficam acinzentadas;
+- uma aba para cada uma das 18 seções, na borda de cima da janela (o número da seção; passe o mouse para ver o nome), mais a aba **Avançado**; cada aba mostra só a sua seção, e quando uma opção está desligada as sub-opções dela ficam acinzentadas;
 - caixas para escolher quais chefes e quais NPCs de cidade podem trocar entre si, com o nome de cada um;
 - controles deslizantes para os valores (multiplicadores, porcentagens e a chance do item aleatório) e listas para escolher os modos;
 - uma seção **Avançado** com o spoiler e as listas de mobs e itens que nunca devem ser trocados;
@@ -49,7 +49,7 @@ O arquivo de configuração é criado na primeira vez que o jogo abre com o mod:
 
 Cada opção vem com um comentário explicando o que faz. Para desligar uma opção, troque `true` por `false`.
 
-Numa instalação limpa, o mod sorteia uma seed aleatória e grava no arquivo. Receitas (`recipes`), visuais (`visuals`) e traduções (`translations`) vêm desligados; as demais opções vêm ligadas. Com `seed = 0`, o mod gera uma seed aleatória nova no próximo início. Para nunca randomizar certos mobs ou itens, coloque os IDs deles em `excludeMobs` e `excludeItems`, separados por vírgula.
+Numa instalação limpa, o mod sorteia uma seed aleatória e grava no arquivo. Receitas (`recipes`) e traduções (`translations`) vêm desligadas; as demais opções vêm ligadas, e os visuais trocam só mobs e projéteis (`visualFolders = mobs,projectiles`). Com `seed = 0`, o mod gera uma seed aleatória nova no próximo início. Para nunca randomizar certos mobs ou itens, coloque os IDs deles em `excludeMobs` e `excludeItems`, separados por vírgula.
 
 **A randomização é montada enquanto o jogo carrega, então qualquer mudança só vale depois de reiniciar o jogo (ou o servidor).**
 

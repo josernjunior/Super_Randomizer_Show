@@ -17,6 +17,7 @@ import necesse.engine.registries.BuffRegistry;
 import necesse.engine.registries.ItemRegistry;
 import necesse.engine.registries.JournalChallengeRegistry;
 import necesse.engine.registries.MobRegistry;
+import necesse.engine.registries.ObjectRegistry;
 import necesse.engine.registries.ProjectileRegistry;
 import necesse.engine.storyObjectives.objectives.bossObjectives.DefeatEvilsProtectorStoryObjective;
 import necesse.engine.util.GameRandom;
@@ -37,6 +38,7 @@ import necesse.inventory.item.matItem.FishItemInterface;
 import necesse.inventory.item.placeableItem.fishingRodItem.FishingRodItem;
 import necesse.inventory.lootTable.LootList;
 import necesse.inventory.lootTable.LootTable;
+import necesse.level.gameObject.GameObject;
 import necesse.level.maps.Level;
 import necesse.level.maps.LevelTile;
 import necesse.level.maps.biomes.FishingLootTable;
@@ -132,6 +134,28 @@ public final class SelfTest {
         }
         level.entityManager.pickups.stream().forEach(p -> p.remove());
         log.accept("Mortes: " + killed + " mobs mortos, " + drops + " drops gerados");
+
+        // 2 - object drops: objects must only swap with objects that also drop something (or both nothing)
+        int objectsSwapped = 0;
+        List<String> lostDrops = new ArrayList<>();
+        List<String> gainedDrops = new ArrayList<>();
+        for (Map.Entry<String, String> e : new TreeMap<>(DropRandomizer.getObjectMapping()).entrySet()) {
+            if (e.getKey().equals(e.getValue())) continue;
+            objectsSwapped++;
+            try {
+                GameObject from = ObjectRegistry.getObject(e.getKey());
+                GameObject to = ObjectRegistry.getObject(e.getValue());
+                boolean fromDrops = !from.getLootTable(level, 0, tile.x, tile.y).items.isEmpty();
+                boolean toDrops = !to.getLootTable(level, 0, tile.x, tile.y).items.isEmpty();
+                if (fromDrops && !toDrops) lostDrops.add(e.getKey() + "->" + e.getValue());
+                if (!fromDrops && toDrops) gainedDrops.add(e.getKey() + "->" + e.getValue());
+            } catch (Throwable t) {
+                fail(failures, "drops de " + e.getKey(), t);
+            }
+        }
+        if (!lostDrops.isEmpty()) failures.merge("objetos que ficaram sem drop: " + lostDrops, 1, Integer::sum);
+        if (!gainedDrops.isEmpty()) failures.merge("objetos sem drop que passaram a dropar (drop dobrado): " + gainedDrops, 1, Integer::sum);
+        log.accept("Objetos: " + objectsSwapped + " com drops trocados, " + lostDrops.size() + " ficaram sem drop, " + gainedDrops.size() + " passaram a dropar");
 
         // 3 - fire every projectile type and tick it a few times
         Mob owner = MobRegistry.getMob(MobRegistry.getMobID("zombie"), level);
@@ -384,8 +408,11 @@ public final class SelfTest {
             int original = FishingRandomizer.originalPower(item.getStringID());
             if (original < 0) continue;
             int power = FishingRandomizer.getPower(item);
-            float variation = item instanceof BaitItem ? SRS.settings().fishingBaitPowerVariation : SRS.settings().fishingRodPowerVariation;
-            if (power < 1 || power < Math.floor(original * (1 - variation)) - 1 || power > Math.ceil(original * (1 + variation)) + 1) {
+            boolean bait = item instanceof BaitItem;
+            float a = bait ? SRS.settings().fishingBaitPowerMin : SRS.settings().fishingRodPowerMin;
+            float b = bait ? SRS.settings().fishingBaitPowerMax : SRS.settings().fishingRodPowerMax;
+            float min = Math.min(a, b), max = Math.max(a, b);
+            if (power < 1 || power < Math.floor(original * min) - 1 || power > Math.ceil(original * max) + 1) {
                 failures.merge("poder de pesca de " + item.getStringID() + " fora da faixa: " + power, 1, Integer::sum);
             }
             if (power != original) powersChanged++;

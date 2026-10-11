@@ -17,12 +17,14 @@ import necesse.engine.window.WindowManager;
 import necesse.gfx.forms.Form;
 import necesse.gfx.forms.components.FormBreakLine;
 import necesse.gfx.forms.components.FormCheckBox;
+import necesse.gfx.forms.components.FormComponentList;
 import necesse.gfx.forms.components.FormContentBox;
 import necesse.gfx.forms.components.FormDropdownSelectionButton;
 import necesse.gfx.forms.components.FormFlow;
 import necesse.gfx.forms.components.FormInputSize;
 import necesse.gfx.forms.components.FormLabel;
 import necesse.gfx.forms.components.FormSlider;
+import necesse.gfx.forms.components.FormTabTextComponent;
 import necesse.gfx.forms.components.FormTextButton;
 import necesse.gfx.forms.components.FormTextInput;
 import necesse.gfx.forms.presets.ConfirmationForm;
@@ -70,10 +72,28 @@ public class SRSConfigForm extends Form {
     private FormFlow flow;
     private ConfirmationForm ownDialog;
 
-    public SRSConfigForm(ModsForm modsForm, Form modsMain) {
+    /** The component shown in the mods menu: this form plus its tabs. */
+    private final FormComponentList screen;
+    // Tabs: one per section. buildContent() walks every section and only adds the components of the selected one.
+    private final List<String> sectionTitles = new ArrayList<>();
+    private int selectedTab = -1;
+    private int sectionIndex;
+    private boolean visible;
+    private int visibleEnd;
+
+    /** Builds the screen (the form with its tabs on top) to add to the mods menu. */
+    public static FormComponentList createScreen(ModsForm modsForm, Form modsMain) {
+        FormComponentList screen = new FormComponentList();
+        SRSConfigForm form = screen.addComponent(new SRSConfigForm(modsForm, modsMain, screen));
+        form.addTabs();
+        return screen;
+    }
+
+    private SRSConfigForm(ModsForm modsForm, Form modsMain, FormComponentList screen) {
         super("srsconfig", WIDTH, HEIGHT);
         this.modsForm = modsForm;
         this.modsMain = modsMain;
+        this.screen = screen;
         this.edit = copy(SRS.stored());
 
         addComponent(new FormLabel("Super Randomizer Show", new FontOptions(20), 0, WIDTH / 2, 8));
@@ -105,6 +125,8 @@ public class SRSConfigForm extends Form {
         restartButton.onClicked(e -> restart());
         addComponent(new FormTextButton("Voltar", 20 + buttonWidth * 3, buttonY, buttonWidth, FormInputSize.SIZE_32, ButtonColor.BASE)).onClicked(e -> back());
 
+        buildContent();     // nothing selected yet: only collects the section titles for the tabs
+        selectedTab = 0;
         buildContent();
         if (needsRestart()) {
             setStatus("Há mudanças salvas que ainda não estão em uso. Reinicie o jogo para aplicar.", false);
@@ -119,12 +141,58 @@ public class SRSConfigForm extends Form {
         setPosMiddle(window.getHudWidth() / 2, window.getHudHeight() / 2);
     }
 
+    // ===== Tabs =====
+
+    private static final int TAB_GAP = 2;
+    private static final int NUMBER_TAB_WIDTH = 31;
+
+    /**
+     * One Necesse tab per section along the top edge of the form: its number as the label ("Avançado" has none),
+     * its name as the tooltip. They're drawn outside the form, so they live in the screen next to it.
+     */
+    private void addTabs() {
+        int numbered = 0;
+        for (String title : sectionTitles) {
+            if (title.contains(" - ")) numbered++;
+        }
+        int others = sectionTitles.size() - numbered;
+        int otherWidth = others == 0 ? 0 : (WIDTH - 8 - TAB_GAP * (sectionTitles.size() - 1) - NUMBER_TAB_WIDTH * numbered) / others;
+        int x = 4;
+        for (int i = 0; i < sectionTitles.size(); i++) {
+            final int index = i;
+            String title = sectionTitles.get(i);
+            int split = title.indexOf(" - ");
+            String label = split < 0 ? title : title.substring(0, split);
+            String tooltip = split < 0 ? null : title.substring(split + 3);
+            int width = split < 0 ? otherWidth : NUMBER_TAB_WIDTH;
+            FormTabTextComponent tab = screen.addComponent(new FormTabTextComponent(label, tooltip, this, x, FormInputSize.SIZE_20, width) {
+                @Override
+                public boolean isSelected() {
+                    return selectedTab == index;
+                }
+            });
+            tab.onClicked(e -> selectTab(index));
+            x += width + TAB_GAP;
+        }
+    }
+
+    private void selectTab(int index) {
+        if (index == selectedTab) return;
+        pull();
+        selectedTab = index;
+        buildContent();
+    }
+
     // ===== Content =====
 
     private void buildContent() {
         content.clearComponents();
         refreshers.clear();
         pullers.clear();
+        sectionTitles.clear();
+        sectionIndex = -1;
+        visible = false;
+        visibleEnd = 0;
         flow = new FormFlow(5);
 
         section("1 - Aparecimento de mobs");
@@ -266,9 +334,11 @@ public class SRSConfigForm extends Form {
 
         section("18 - Pesca");
         check(0, "Randomizar o poder de pesca das iscas", s -> s.fishingBaitPower, (s, v) -> s.fishingBaitPower = v, null);
-        slider(1, "Variação máxima, para mais ou para menos", 0.0F, 1.0F, 0.05F, PERCENT, s -> s.fishingBaitPowerVariation, (s, v) -> s.fishingBaitPowerVariation = v);
+        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingBaitPowerMin, (s, v) -> s.fishingBaitPowerMin = v);
+        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingBaitPowerMax, (s, v) -> s.fishingBaitPowerMax = v);
         check(0, "Randomizar o poder de pesca das varas", s -> s.fishingRodPower, (s, v) -> s.fishingRodPower = v, null);
-        slider(1, "Variação máxima, para mais ou para menos", 0.0F, 1.0F, 0.05F, PERCENT, s -> s.fishingRodPowerVariation, (s, v) -> s.fishingRodPowerVariation = v);
+        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingRodPowerMin, (s, v) -> s.fishingRodPowerMin = v);
+        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingRodPowerMax, (s, v) -> s.fishingRodPowerMax = v);
         check(0, "Randomizar a pescaria", s -> s.fishingCatches, (s, v) -> s.fishingCatches = v, null);
         Map<String, String> fishingModes = new LinkedHashMap<>();
         fishingModes.put("fish", "Peixes (cada peixe vira outro peixe)");
@@ -280,8 +350,8 @@ public class SRSConfigForm extends Form {
         text(0, "Mobs que nunca devem ser trocados (IDs separados por vírgula):", s -> s.excludeMobs, (s, v) -> s.excludeMobs = v);
         text(0, "Itens que nunca devem ser trocados (IDs separados por vírgula):", s -> s.excludeItems, (s, v) -> s.excludeItems = v);
 
-        flow.next(10);
-        content.setContentBox(new java.awt.Rectangle(content.getWidth(), flow.next()));
+        if (visible) visibleEnd = flow.next();
+        content.setContentBox(new java.awt.Rectangle(content.getWidth(), visibleEnd + 10));
         content.setScrollY(0);
         refresh();
     }
@@ -342,18 +412,26 @@ public class SRSConfigForm extends Form {
         return content.getMinContentWidth() - x(indent) - 10;
     }
 
+    /** Starts a section (one tab). Only the selected section's components are added; the helpers skip the rest. */
     private void section(String title) {
-        flow.next(8);
+        if (visible) visibleEnd = flow.next();
+        sectionIndex++;
+        sectionTitles.add(title);
+        visible = sectionIndex == selectedTab;
+        if (!visible) return;
+        flow = new FormFlow(5);
         content.addComponent(new FormLabel(title, new FontOptions(18), -1, 8, flow.next(24)));
         content.addComponent(new FormBreakLine(FormBreakLine.ALIGN_BEGINNING, 8, flow.next(6), content.getMinContentWidth() - 16, true));
     }
 
     private void label(int indent, String text) {
+        if (!visible) return;
         FormLabel label = content.addComponent(new FormLabel(text, new FontOptions(14), -1, x(indent), flow.next(), width(indent)));
         flow.next(Math.max(18, label.getHeight()) + 4);
     }
 
     private FormCheckBox check(int indent, String text, Predicate<SRSSettings> getter, BiConsumer<SRSSettings, Boolean> setter, BooleanSupplier enabledWhen) {
+        if (!visible) return null;
         FormCheckBox box = content.addComponent(new FormCheckBox(text, x(indent), flow.next(), width(indent), getter.test(edit)));
         flow.next(Math.max(20, box.getBoundingBox().height) + 4);
         box.onClicked(e -> {
@@ -366,6 +444,7 @@ public class SRSConfigForm extends Form {
 
     private void slider(int indent, String text, float min, float max, float step, int format,
                         Function<SRSSettings, Float> getter, BiConsumer<SRSSettings, Float> setter) {
+        if (!visible) return;
         int ticks = Math.round((max - min) / step);
         int start = Math.max(0, Math.min(ticks, Math.round((getter.apply(edit) - min) / step)));
         FormSlider slider = new FormSlider(text, x(indent), 0, start, 0, ticks, Math.min(420, width(indent))) {
@@ -382,6 +461,7 @@ public class SRSConfigForm extends Form {
 
     private void dropdown(int indent, String text, Map<String, String> options, Function<SRSSettings, String> getter,
                           BiConsumer<SRSSettings, String> setter, BooleanSupplier enabledWhen) {
+        if (!visible) return;
         int y = flow.next(32);
         content.addComponent(new FormLabel(text, new FontOptions(14), -1, x(indent), y + 5));
         FormDropdownSelectionButton<String> dropdown = content.addComponent(
@@ -399,6 +479,7 @@ public class SRSConfigForm extends Form {
     /** One checkbox per known entry of a comma separated list. Unknown entries typed in the cfg are kept. */
     private void listChecks(int indent, String[][] entries, Function<SRSSettings, String> getter, BiConsumer<SRSSettings, String> setter,
                             BooleanSupplier enabledWhen) {
+        if (!visible) return;
         int columns = 2;
         int columnWidth = width(indent) / columns;
         for (int i = 0; i < entries.length; i++) {
@@ -421,6 +502,7 @@ public class SRSConfigForm extends Form {
     }
 
     private void text(int indent, String text, Function<SRSSettings, String> getter, BiConsumer<SRSSettings, String> setter) {
+        if (!visible) return;
         label(indent, text);
         FormTextInput input = content.addComponent(new FormTextInput(x(indent), flow.next(30), FormInputSize.SIZE_24, width(indent), 2000));
         input.setText(getter.apply(edit) == null ? "" : getter.apply(edit));
@@ -517,8 +599,8 @@ public class SRSConfigForm extends Form {
             while (seed == 0) seed = new Random().nextLong();
             seedInput.setText(String.valueOf(seed));
             setStatus("Nova seed sorteada. Clique em Salvar para gravar.", false);
-            modsForm.makeCurrent(this);
-        }, () -> modsForm.makeCurrent(this));
+            modsForm.makeCurrent(screen);
+        }, () -> modsForm.makeCurrent(screen));
     }
 
     private void back() {
@@ -535,7 +617,7 @@ public class SRSConfigForm extends Form {
     /** Leaves this screen and removes it from the mods menu. */
     private void close() {
         modsForm.makeCurrent(modsMain);
-        modsForm.removeComponent(this);
+        modsForm.removeComponent(screen);
     }
 
     /** Shows a yes/no dialog. Each action decides which screen comes next. */

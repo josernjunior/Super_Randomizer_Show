@@ -61,8 +61,8 @@ public final class FishingRandomizer {
             if (item instanceof FishItemInterface && item.type != Item.Type.QUEST) fish.add(id);
         }
 
-        if (s.fishingBaitPower) randomizePower("18 - Pesca: poder das iscas", "fishing:bait:", baits, s.fishingBaitPowerVariation);
-        if (s.fishingRodPower) randomizePower("18 - Pesca: poder das varas", "fishing:rod:", rods, s.fishingRodPowerVariation);
+        if (s.fishingBaitPower) randomizePower("18 - Pesca: poder das iscas", "fishing:bait:", baits, s.fishingBaitPowerMin, s.fishingBaitPowerMax);
+        if (s.fishingRodPower) randomizePower("18 - Pesca: poder das varas", "fishing:rod:", rods, s.fishingRodPowerMin, s.fishingRodPowerMax);
 
         if (s.fishingCatches) {
             List<String> lines = Spoiler.section("18 - Pesca: o que e pescado (" + (allItems ? "todos os itens" : "peixes") + ")");
@@ -86,17 +86,16 @@ public final class FishingRandomizer {
         }
     }
 
-    /** Multiplies every item's power by a fixed factor in [1 - variation, 1 + variation], at least 1%. */
-    private static void randomizePower(String title, String key, TreeMap<String, Item> items, float variation) {
+    /** Multiplies every item's power by a fixed factor between min and max, at least 1%. */
+    private static void randomizePower(String title, String key, TreeMap<String, Item> items, float min, float max) {
         List<String> lines = Spoiler.section(title);
-        variation = Math.max(0, variation);
         for (Map.Entry<String, Item> e : items.entrySet()) {
             String id = e.getKey();
             Item item = e.getValue();
             try {
                 int original = originalPower.containsKey(id) ? originalPower.get(id) : getPower(item);
                 originalPower.put(id, original);
-                float factor = SeedRandom.range(key + id, 1 - variation, 1 + variation);
+                float factor = SeedRandom.range(key + id, min, max);
                 int power = Math.max(1, Math.round(original * factor));
                 setPower(item, power);
                 lines.add(id + ": " + original + "% -> " + power + "%");
