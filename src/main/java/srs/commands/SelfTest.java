@@ -8,13 +8,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
+import necesse.engine.journal.JournalChallenge;
+import necesse.engine.journal.MultiJournalChallenge;
 import necesse.engine.localization.Localization;
 import necesse.engine.network.server.Server;
 import necesse.engine.network.server.ServerClient;
 import necesse.engine.registries.BuffRegistry;
 import necesse.engine.registries.ItemRegistry;
+import necesse.engine.registries.JournalChallengeRegistry;
 import necesse.engine.registries.MobRegistry;
 import necesse.engine.registries.ProjectileRegistry;
+import necesse.engine.storyObjectives.objectives.bossObjectives.DefeatEvilsProtectorStoryObjective;
 import necesse.engine.util.GameRandom;
 import necesse.entity.mobs.GameDamage;
 import necesse.entity.mobs.Mob;
@@ -28,16 +32,28 @@ import necesse.inventory.InventoryItem;
 import necesse.inventory.item.Item;
 import necesse.inventory.item.ItemStatTipList;
 import necesse.inventory.item.armorItem.ArmorItem;
+import necesse.inventory.item.baitItem.BaitItem;
+import necesse.inventory.item.matItem.FishItemInterface;
+import necesse.inventory.item.placeableItem.fishingRodItem.FishingRodItem;
+import necesse.inventory.lootTable.LootList;
+import necesse.inventory.lootTable.LootTable;
 import necesse.level.maps.Level;
+import necesse.level.maps.LevelTile;
+import necesse.level.maps.biomes.FishingLootTable;
+import necesse.level.maps.biomes.FishingSpot;
 import necesse.level.maps.biomes.MobChance;
 import necesse.level.maps.biomes.MobSpawnTable;
 import srs.core.MobPools;
 import srs.core.MobPools.Pool;
 import srs.core.SRS;
+import srs.random.DropRandomizer;
+import srs.random.FishingRandomizer;
 import srs.random.MobDamageRandomizer;
 import srs.random.MobHealthRandomizer;
+import srs.random.MobStatRandomizer;
 import srs.random.MobSpawnRandomizer;
 import srs.random.ProjectileRandomizer;
+import srs.random.QuestRewardRandomizer;
 import srs.ui.MobChoices;
 
 /**
@@ -286,6 +302,138 @@ public final class SelfTest {
             }
         }
         log.accept("Vida: " + (healthLines.isEmpty() ? "nenhum grupo com fator" : String.join(", ", healthLines)));
+
+        // 7/8 - defense and knockback: the getters must return the randomized values
+        List<String> statLines = new ArrayList<>();
+        for (Pool pool : new Pool[]{Pool.HOSTILE, Pool.TOWN, Pool.CRITTER, Pool.ANIMAL, Pool.BOSS}) {
+            List<String> ids = MobPools.get(pool);
+            if (ids.isEmpty()) continue;
+            String id = ids.get(ids.size() / 2);
+            Mob mob = MobRegistry.getMob(MobRegistry.getMobID(id), level);
+            if (mob == null) continue;
+            try {
+                float armor = mob.getArmor();
+                float expectedArmor = MobStatRandomizer.modifyArmor(mob, mob.getArmorFlat());
+                float knockback = mob.getKnockbackModifier();
+                statLines.add(id + " defesa " + mob.getArmorFlat() + "->" + Math.round(armor) + ", empurrao " + String.format(java.util.Locale.ROOT, "%.2f", knockback));
+                if (Math.abs(armor - expectedArmor) > 0.01F) failures.merge("defesa de " + id + ": " + armor + " (esperado " + expectedArmor + ")", 1, Integer::sum);
+            } catch (Throwable e) {
+                fail(failures, "defesa/empurrao de " + id, e);
+            }
+        }
+        log.accept("Defesa/empurrao: " + String.join("; ", statLines));
+
+        // 17 - quest rewards: the tables the game reads must be the wrapped ones, and every roll must give pool items
+        if (SRS.settings().questRewards) {
+            int elder = 0, journal = 0, rolledItems = 0;
+            String rewardExample = null;
+            Set<Item> pool = new HashSet<>(DropRandomizer.randomItemPool());
+            for (Map.Entry<String, LootTable> e : QuestRewardRandomizer.getWrapped().entrySet()) {
+                if (e.getKey().startsWith(QuestRewardRandomizer.ELDER)) elder++;
+                else journal++;
+                try {
+                    for (InventoryItem item : e.getValue().getNewList(new GameRandom(1), 1.0F)) {
+                        rolledItems++;
+                        if (!pool.contains(item.item) && !SRS.isItemExcluded(item.item.getStringID())) {
+                            failures.merge("recompensa de " + e.getKey() + " fora do sorteio: " + item.item.getStringID(), 1, Integer::sum);
+                        }
+                        if (rewardExample == null) rewardExample = e.getKey() + " -> " + item.item.getStringID() + " x" + item.getAmount();
+                    }
+                    LootList shown = new LootList();
+                    e.getValue().addPossibleLoot(shown);
+                    int shownCount = 0;
+                    for (Item item : shown.getItems()) {
+                        shownCount++;
+                        if (!pool.contains(item) && !SRS.isItemExcluded(item.getStringID())) {
+                            failures.merge("janela de " + e.getKey() + " mostra item fora do sorteio: " + item.getStringID(), 1, Integer::sum);
+                        }
+                    }
+                    if (shownCount == 0) failures.merge("recompensa de " + e.getKey() + " sem itens na janela", 1, Integer::sum);
+                } catch (Throwable t) {
+                    fail(failures, "recompensa de " + e.getKey(), t);
+                }
+            }
+            if (SRS.settings().questRewardsElder && (elder == 0 || !QuestRewardRandomizer.isWrapped(DefeatEvilsProtectorStoryObjective.rewards))) {
+                failures.merge("recompensas do Mestre Anciao nao foram trocadas", 1, Integer::sum);
+            }
+            LootTable gettingStarted = QuestRewardRandomizer.getWrapped().get(QuestRewardRandomizer.ELDER + ": gettingstarted");
+            if (gettingStarted != null && !SRS.isItemExcluded("leatherdashers")
+                    && gettingStarted.getNewList(new GameRandom(1), 1.0F).stream().noneMatch(i -> i.item.getStringID().equals("leatherdashers"))) {
+                failures.merge("o primeiro objetivo do Mestre Anciao nao da mais as Leather Dashers (o seguinte pede para equipa-las)", 1, Integer::sum);
+            }
+            if (SRS.settings().questRewardsJournal) {
+                int journalWithReward = 0, journalWrapped = 0;
+                for (JournalChallenge challenge : JournalChallengeRegistry.getChallenges()) {
+                    if (!(challenge instanceof MultiJournalChallenge) || ((MultiJournalChallenge) challenge).reward == null) continue;
+                    journalWithReward++;
+                    if (QuestRewardRandomizer.isWrapped(challenge.getReward())) journalWrapped++;
+                }
+                if (journalWrapped != journalWithReward || journalWithReward == 0) {
+                    failures.merge("desafios do diario trocados: " + journalWrapped + " de " + journalWithReward, 1, Integer::sum);
+                }
+            }
+            log.accept("Recompensas: " + elder + " do Mestre Anciao e " + journal + " do diario trocadas, " + rolledItems
+                    + " itens sorteados" + (rewardExample == null ? "" : " (ex.: " + rewardExample + ")"));
+        }
+
+        // 18 - fishing: powers live in the items' fields; catches go through FishingLootTable.getRandomItem (regions near the spawn are loaded, never changed, to find water)
+        List<String> powerLines = new ArrayList<>();
+        int powersChanged = 0;
+        for (Item item : ItemRegistry.getItems()) {
+            if (!(item instanceof BaitItem) && !(item instanceof FishingRodItem)) continue;
+            int original = FishingRandomizer.originalPower(item.getStringID());
+            if (original < 0) continue;
+            int power = FishingRandomizer.getPower(item);
+            float variation = item instanceof BaitItem ? SRS.settings().fishingBaitPowerVariation : SRS.settings().fishingRodPowerVariation;
+            if (power < 1 || power < Math.floor(original * (1 - variation)) - 1 || power > Math.ceil(original * (1 + variation)) + 1) {
+                failures.merge("poder de pesca de " + item.getStringID() + " fora da faixa: " + power, 1, Integer::sum);
+            }
+            if (power != original) powersChanged++;
+            powerLines.add(item.getStringID() + " " + original + "%->" + power + "%");
+        }
+        String catchLine = "pescaria desligada";
+        if (SRS.settings().fishingCatches) {
+            try {
+                Set<Item> randomPool = new HashSet<>(DropRandomizer.randomItemPool());
+                boolean allItems = "all".equalsIgnoreCase(SRS.settings().fishingCatchesMode);
+                InventoryItem carp = new FishingLootTable().add(1, spot -> true, "carp").getRandomItem(null, new GameRandom(1));
+                Item expected = FishingRandomizer.catchFor("carp");
+                String expectedID = expected == null ? "carp" : expected.getStringID();
+                if (carp == null || !carp.item.getStringID().equals(expectedID)) {
+                    failures.merge("pescar carp deu " + (carp == null ? "nada" : carp.item.getStringID()) + " (esperado " + expectedID + ")", 1, Integer::sum);
+                }
+                catchLine = "carp vira " + expectedID;
+                Point water = null;
+                for (int r = 0; r <= 96 && water == null; r += 2) {
+                    for (int dx = -r; dx <= r && water == null; dx += 2) {
+                        for (int dy = -r; dy <= r && water == null; dy += 2) {
+                            if (Math.max(Math.abs(dx), Math.abs(dy)) != r) continue;
+                            if (level.regionManager.getRegionByTile(tile.x + dx, tile.y + dy, true) == null) continue;
+                            if (level.getTile(tile.x + dx, tile.y + dy).isLiquid) water = new Point(tile.x + dx, tile.y + dy);
+                        }
+                    }
+                }
+                if (water != null) {
+                    FishingSpot spot = new FishingSpot(new LevelTile(level, water.x, water.y), (FishingRodItem) ItemRegistry.getItem("woodfishingrod"), null);
+                    FishingLootTable table = spot.getBiome().getFishingLootTable(spot);
+                    TreeMap<String, Integer> caught = new TreeMap<>();
+                    for (int i = 0; i < 200; i++) {
+                        InventoryItem c = table.getRandomItem(spot, GameRandom.globalRandom);
+                        if (c == null) continue;
+                        caught.merge(c.item.getStringID(), 1, Integer::sum);
+                        boolean ok = allItems ? randomPool.contains(c.item)
+                                : c.item instanceof FishItemInterface || FishingRandomizer.catchFor(c.item.getStringID()) == null;
+                        if (!ok) failures.merge("pescado inesperado: " + c.item.getStringID(), 1, Integer::sum);
+                    }
+                    catchLine += "; 200 tentativas na agua em " + water.x + "," + water.y + ": " + caught;
+                } else {
+                    catchLine += "; nenhuma agua perto do spawn";
+                }
+            } catch (Throwable t) {
+                fail(failures, "pescaria", t);
+            }
+        }
+        log.accept("Pesca: " + powersChanged + " de " + powerLines.size() + " poderes mudados (" + String.join(", ", powerLines) + "); " + catchLine);
 
         String[][] bosses = MobChoices.bosses(SRS.settings().bossPool);
         String[][] npcs = MobChoices.townNPCs(SRS.settings().townNPCPool);

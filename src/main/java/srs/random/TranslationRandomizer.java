@@ -24,7 +24,7 @@ import srs.core.SeedRandom;
 import srs.core.Spoiler;
 
 /**
- * Feature 13: shuffles translations.
+ * Feature 15: shuffles translations.
  * <ul>
  * <li>entries: whole texts are swapped between keys of the same category that use the same placeholders
  * (so "&lt;name&gt; was killed" can only trade places with another text that also has &lt;name&gt;).</li>
@@ -67,7 +67,7 @@ public final class TranslationRandomizer {
                     done++;
                 }
             }
-            Spoiler.section("13 - Traducoes").add("Modo '" + SRS.settings().translationMode + "' aplicado a " + done + " idiomas.");
+            Spoiler.section("15 - Traducoes").add("Modo '" + SRS.settings().translationMode + "' aplicado a " + done + " idiomas.");
         } catch (Exception e) {
             SRS.warn("Translation randomization failed: " + e);
         }

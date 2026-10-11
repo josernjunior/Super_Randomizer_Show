@@ -14,15 +14,19 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 | 5.2 | `enemyDamage` | Dano dos inimigos: `multiplier` (fator aleatório entre `enemyDamageMin` e `enemyDamageMax`) ou `preswap` (padrão): o inimigo que trocou de lugar bate com a força do inimigo que estava ali antes. As barras de mínimo/máximo valem nos dois modos; no `preswap` elas multiplicam o dano do inimigo original, e com 1.0 e 1.0 o dano fica igual ao dele. O mod mede o dano base de cada inimigo ao iniciar, e a tabela fica no spoiler. |
 | 5.3 | `bossDamage` | Dano dos chefes, com os mesmos modos e barras (`bossDamageMode`, `bossDamageMin`, `bossDamageMax`). No `preswap`, o chefe invocado no lugar de outro bate com a força do chefe original, multiplicada pelas barras. |
 | 6 | `enemyHealth` / `villagerHealth` / `critterHealth` / `animalHealth` / `bossHealth` | Vida máxima de inimigos (6.1), aldeões (6.2), bichos (6.3), animais (6.4) e chefes (6.5). Cada grupo tem os modos `multiplier` (fator aleatório) ou `preswap` (padrão): o mob que trocou de lugar fica com a vida do mob que estava ali antes. As barras de mínimo/máximo (`...HealthMin`/`...HealthMax`, padrão 0,8 a 1,2) valem nos dois modos. |
-| 7 | `critChance` | Crítico extra em cada arma (`weaponCritMin` a `weaponCritMax`). O crítico que armaduras, acessórios e bônus de conjunto já davam é multiplicado, e cada um deles ainda pode ganhar até `equipmentCritBonusMax` a mais. |
-| 8 | `armorSetBonuses` | Troca os bônus de conjunto entre as armaduras. |
-| 9 | `equipmentEffects` | Troca os efeitos entre acessórios e entre peças de armadura do mesmo slot. Cada peça mantém o próprio valor de armadura. |
-| 10 | `equipmentDamage` | Multiplica o % de dano extra que os equipamentos dão. |
-| 11 | `visuals` | Troca as texturas de itens, armas, armaduras, cosméticos, mobs, NPCs e projéteis. Só troca entre imagens compatíveis, então um mob vira outro mob inteiro e um capacete vira outro capacete. As pastas usadas ficam em `visualFolders`. |
-| 11b | `funnyBuggedSwap` | **Troca Bugada Divertida** (desligada por padrão): as partes dos mobs (corpo, braços, sombra) trocam separadas umas das outras, criando misturas como um slime com braços de zumbi. Funciona mesmo com `visuals` desligado. |
-| 12 | `projectiles` | Troca os projéteis de armas, inimigos e chefes. O substituto mantém a posição, a direção, a velocidade, o alcance e o dano do original. |
-| 13 | `translations` | Embaralha os textos do jogo: `entries` troca textos inteiros dentro da mesma categoria; `words` troca as palavras de lugar. |
-| 14 | `sounds` | Troca os sons dentro de cada categoria: `music`, `animals`, `creatures`, `environment`, `weather`, `weapons`, `impacts`, `interface`, `bosses`, `notes` e `other`. As categorias usadas ficam em `soundCategories`. |
+| 7 | `enemyArmor` / `villagerArmor` / `critterArmor` / `animalArmor` / `bossArmor` | **Defesa** (armadura) de inimigos (7.1), aldeões (7.2), bichos (7.3), animais (7.4) e chefes (7.5). Cada golpe perde metade da armadura em dano. Modos `multiplier` ou `preswap` (padrão): o mob que trocou de lugar fica com a defesa do mob que estava ali antes. As barras (`...ArmorMin`/`...ArmorMax`, padrão 0,8 a 1,2) valem nos dois modos. |
+| 8 | `enemyKnockback` / `villagerKnockback` / `critterKnockback` / `animalKnockback` / `bossKnockback` | **Empurrão**: o quanto o mob é jogado para trás ao levar um golpe (1,0 = normal, 0 = não se move), nos mesmos grupos (8.1 a 8.5), modos e barras da defesa. |
+| 9 | `critChance` | Crítico extra em cada arma (`weaponCritMin` a `weaponCritMax`). O crítico que armaduras, acessórios e bônus de conjunto já davam é multiplicado, e cada um deles ainda pode ganhar até `equipmentCritBonusMax` a mais. |
+| 10 | `armorSetBonuses` | Troca os bônus de conjunto entre as armaduras. |
+| 11 | `equipmentEffects` | Troca os efeitos entre acessórios e entre peças de armadura do mesmo slot. Cada peça mantém o próprio valor de armadura. |
+| 12 | `equipmentDamage` | Multiplica o % de dano extra que os equipamentos dão. |
+| 13 | `visuals` | Troca as texturas de itens, armas, armaduras, cosméticos, mobs, NPCs e projéteis. Só troca entre imagens compatíveis, então um mob vira outro mob inteiro e um capacete vira outro capacete. As pastas usadas ficam em `visualFolders`. |
+| 13b | `funnyBuggedSwap` | **Troca Bugada Divertida** (desligada por padrão): as partes dos mobs (corpo, braços, sombra) trocam separadas umas das outras, criando misturas como um slime com braços de zumbi. Funciona mesmo com `visuals` desligado. |
+| 14 | `projectiles` | Troca os projéteis de armas, inimigos e chefes. O substituto mantém a posição, a direção, a velocidade, o alcance e o dano do original. |
+| 15 | `translations` | Embaralha os textos do jogo: `entries` troca textos inteiros dentro da mesma categoria; `words` troca as palavras de lugar. |
+| 16 | `sounds` | Troca os sons dentro de cada categoria: `music`, `animals`, `creatures`, `environment`, `weather`, `weapons`, `impacts`, `interface`, `bosses`, `notes` e `other`. As categorias usadas ficam em `soundCategories`. |
+| 17 | `questRewards` / `questRewardsElder` / `questRewardsJournal` | **Recompensas aleatórias**: os itens que as quests dão viram itens aleatórios de todo o jogo, tanto nos objetivos do Mestre Ancião (17.1) quanto nos desafios do diário de aventura (17.2). A janela da quest já mostra a recompensa nova. A quantidade original é mantida (até uma pilha cheia); quando a recompensa era um item único e o sorteado é empilhável, vem um décimo de pilha. As Leather Dashers do primeiro objetivo continuam vindo junto com o item sorteado, porque o objetivo seguinte pede para equipá-las. |
+| 18 | `fishingBaitPower` / `fishingRodPower` / `fishingCatches` | **Pesca**. O poder de pesca de cada isca e de cada vara ganha um fator fixo, que pode subir ou descer até a variação máxima (`fishingBaitPowerVariation` e `fishingRodPowerVariation`, padrão 50%). A descrição do item mostra o valor novo. A pescaria (`fishingCatchesMode`) tem dois modos: `fish` (padrão), em que cada peixe vira outro peixe, e `all`, em que cada coisa pescada vira um item qualquer do jogo. Nos dois modos a troca é sempre a mesma para cada seed (por exemplo, toda carpa vira o mesmo item) e vale também para os aldeões que pescam. O desafio do diário "pescar um peixe-gelo" continua possível: pescar o item em que o peixe-gelo se transformou também conta. |
 
 ## Configuração
 
@@ -31,7 +35,7 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 No menu principal, abra **Mods**, clique em **Super Randomizer Show** e depois no botão **Configurar randomizer**, no fim do painel da direita. A tela de configuração tem:
 
 - a seed, com um botão **Sortear**, que pede confirmação antes de trocar;
-- uma caixa para ligar/desligar cada uma das 14 seções; quando uma opção está desligada, as sub-opções dela ficam acinzentadas;
+- uma caixa para ligar/desligar cada uma das 18 seções; quando uma opção está desligada, as sub-opções dela ficam acinzentadas;
 - caixas para escolher quais chefes e quais NPCs de cidade podem trocar entre si, com o nome de cada um;
 - controles deslizantes para os valores (multiplicadores, porcentagens e a chance do item aleatório) e listas para escolher os modos;
 - uma seção **Avançado** com o spoiler e as listas de mobs e itens que nunca devem ser trocados;
@@ -55,7 +59,7 @@ Com `spoilerLog = true`, o resultado completo é gravado em:
 
 `%APPDATA%\Necesse\cfg\mods\josezito.srs-spoiler.txt`
 
-O arquivo traz a seed, a configuração usada e cada troca feita: quem aparece no lugar de quem, quem dropa o quê, as receitas novas, as lojas, o dano das armas, os bônus de conjunto, as texturas, os sons e os projéteis.
+O arquivo traz a seed, a configuração usada e cada troca feita: quem aparece no lugar de quem, quem dropa o quê, as receitas novas, as lojas, o dano das armas, os bônus de conjunto, as texturas, os sons, os projéteis, as recompensas das quests e a pesca.
 
 ## Comando `/srs` (no chat; precisa de permissão de admin)
 

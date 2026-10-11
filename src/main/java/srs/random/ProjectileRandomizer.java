@@ -22,7 +22,7 @@ import srs.core.SeedRandom;
 import srs.core.Spoiler;
 
 /**
- * Feature 12: whenever a projectile is spawned (by a weapon, an enemy or a boss) it is replaced by another projectile
+ * Feature 14: whenever a projectile is spawned (by a weapon, an enemy or a boss) it is replaced by another projectile
  * type that flies from the same place, to the same target, with the same speed, range, damage and owner.
  * <p>
  * Projectiles that can't work when created generically (boomerangs, summoning projectiles, bombs, projectiles that
@@ -62,7 +62,7 @@ public final class ProjectileRandomizer {
             }
         }
         Map<String, String> perm = SeedRandom.permutation("projectiles", pool);
-        List<String> lines = Spoiler.section("12 - Projeteis (original -> novo)");
+        List<String> lines = Spoiler.section("14 - Projeteis (original -> novo)");
         List<String> keys = new ArrayList<>(perm.keySet());
         Collections.sort(keys);
         for (String k : keys) {

@@ -154,10 +154,18 @@ public class SRSCommand extends ModularChatCommand {
                 log.add(" 5 Danos: armas " + onOff(s.weaponDamage) + ", inimigos " + onOff(s.enemyDamage) + ", chefes " + onOff(s.bossDamage)
                         + " | 6 Vida: inimigos " + onOff(s.enemyHealth) + ", aldeoes " + onOff(s.villagerHealth) + ", bichos " + onOff(s.critterHealth)
                         + ", animais " + onOff(s.animalHealth) + ", chefes " + onOff(s.bossHealth));
-                log.add(" 7 Critico: " + onOff(s.critChance) + " | 8 Bonus conjunto: " + onOff(s.armorSetBonuses) + " | 9 Efeitos: " + onOff(s.equipmentEffects)
-                        + " | 10 % dano equip.: " + onOff(s.equipmentDamage));
-                log.add(" 11 Visuais: " + onOff(s.visuals) + " (Troca Bugada Divertida: " + onOff(s.funnyBuggedSwap) + ")"
-                        + " | 12 Projeteis: " + onOff(s.projectiles) + " | 13 Traducoes: " + onOff(s.translations) + " | 14 Sons: " + onOff(s.sounds));
+                log.add(" 7 Defesa: inimigos " + onOff(s.enemyArmor) + ", aldeoes " + onOff(s.villagerArmor) + ", bichos " + onOff(s.critterArmor)
+                        + ", animais " + onOff(s.animalArmor) + ", chefes " + onOff(s.bossArmor)
+                        + " | 8 Empurrao: inimigos " + onOff(s.enemyKnockback) + ", aldeoes " + onOff(s.villagerKnockback) + ", bichos " + onOff(s.critterKnockback)
+                        + ", animais " + onOff(s.animalKnockback) + ", chefes " + onOff(s.bossKnockback));
+                log.add(" 9 Critico: " + onOff(s.critChance) + " | 10 Bonus conjunto: " + onOff(s.armorSetBonuses) + " | 11 Efeitos: " + onOff(s.equipmentEffects)
+                        + " | 12 % dano equip.: " + onOff(s.equipmentDamage));
+                log.add(" 13 Visuais: " + onOff(s.visuals) + " (Troca Bugada Divertida: " + onOff(s.funnyBuggedSwap) + ")"
+                        + " | 14 Projeteis: " + onOff(s.projectiles) + " | 15 Traducoes: " + onOff(s.translations) + " | 16 Sons: " + onOff(s.sounds));
+                log.add(" 17 Recompensas: " + onOff(s.questRewards) + " (Mestre Anciao " + onOff(s.questRewardsElder)
+                        + ", diario de aventura " + onOff(s.questRewardsJournal) + ")"
+                        + " | 18 Pesca: iscas " + onOff(s.fishingBaitPower) + ", varas " + onOff(s.fishingRodPower)
+                        + ", pescaria " + onOff(s.fishingCatches) + " (" + s.fishingCatchesMode + ")");
                 if (!pending().fingerprint().equals(s.fingerprint())) {
                     log.add("Ha mudancas salvas no arquivo que so valem depois de reiniciar (seed salva: " + pending().seed + ").");
                 }

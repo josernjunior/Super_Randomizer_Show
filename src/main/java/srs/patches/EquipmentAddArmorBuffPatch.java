@@ -7,7 +7,7 @@ import necesse.inventory.InventoryItem;
 import net.bytebuddy.asm.Advice;
 import srs.random.EquipmentRandomizer;
 
-/** Features 7, 9 and 10: armor pieces use the stat modifiers of the piece they were swapped with. */
+/** Features 9, 11 and 12: armor pieces use the stat modifiers of the piece they were swapped with. */
 @ModMethodPatch(target = EquipmentActiveBuff.class, name = "addArmorBuff", arguments = {Mob.class, InventoryItem.class, InventoryItem.class})
 public class EquipmentAddArmorBuffPatch {
 

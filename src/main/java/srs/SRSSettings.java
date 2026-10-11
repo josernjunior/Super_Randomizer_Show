@@ -82,7 +82,51 @@ public class SRSSettings extends ModSettings {
     public float bossHealthMin = 0.8F;
     public float bossHealthMax = 1.2F;
 
-    // 7 - Crit chance
+    // 7 - Defense (armor)
+    public boolean enemyArmor = true;
+    public String enemyArmorMode = "preswap";
+    public float enemyArmorMin = 0.8F;
+    public float enemyArmorMax = 1.2F;
+    public boolean villagerArmor = true;
+    public String villagerArmorMode = "preswap";
+    public float villagerArmorMin = 0.8F;
+    public float villagerArmorMax = 1.2F;
+    public boolean critterArmor = true;
+    public String critterArmorMode = "preswap";
+    public float critterArmorMin = 0.8F;
+    public float critterArmorMax = 1.2F;
+    public boolean animalArmor = true;
+    public String animalArmorMode = "preswap";
+    public float animalArmorMin = 0.8F;
+    public float animalArmorMax = 1.2F;
+    public boolean bossArmor = true;
+    public String bossArmorMode = "preswap";
+    public float bossArmorMin = 0.8F;
+    public float bossArmorMax = 1.2F;
+
+    // 8 - Knockback taken
+    public boolean enemyKnockback = true;
+    public String enemyKnockbackMode = "preswap";
+    public float enemyKnockbackMin = 0.8F;
+    public float enemyKnockbackMax = 1.2F;
+    public boolean villagerKnockback = true;
+    public String villagerKnockbackMode = "preswap";
+    public float villagerKnockbackMin = 0.8F;
+    public float villagerKnockbackMax = 1.2F;
+    public boolean critterKnockback = true;
+    public String critterKnockbackMode = "preswap";
+    public float critterKnockbackMin = 0.8F;
+    public float critterKnockbackMax = 1.2F;
+    public boolean animalKnockback = true;
+    public String animalKnockbackMode = "preswap";
+    public float animalKnockbackMin = 0.8F;
+    public float animalKnockbackMax = 1.2F;
+    public boolean bossKnockback = true;
+    public String bossKnockbackMode = "preswap";
+    public float bossKnockbackMin = 0.8F;
+    public float bossKnockbackMax = 1.2F;
+
+    // 9 - Crit chance
     public boolean critChance = true;
     public float weaponCritMin = 0.0F;
     public float weaponCritMax = 0.15F;
@@ -90,32 +134,45 @@ public class SRSSettings extends ModSettings {
     public float equipmentCritMultMax = 2.5F;
     public float equipmentCritBonusMax = 0.05F;
 
-    // 8 - Armor set bonuses
+    // 10 - Armor set bonuses
     public boolean armorSetBonuses = true;
 
-    // 9 - Equipment effects
+    // 11 - Equipment effects
     public boolean equipmentEffects = true;
 
-    // 10 - Equipment damage %
+    // 12 - Equipment damage %
     public boolean equipmentDamage = true;
     public float equipmentDamageMultMin = 0.0F;
     public float equipmentDamageMultMax = 2.5F;
 
-    // 11 - Visuals
+    // 13 - Visuals
     public boolean visuals = false;
     public String visualFolders = DEFAULT_VISUAL_FOLDERS;
     public boolean funnyBuggedSwap = false;
 
-    // 12 - Projectiles
+    // 14 - Projectiles
     public boolean projectiles = true;
 
-    // 13 - Translations
+    // 15 - Translations
     public boolean translations = false;
     public String translationMode = "entries";
 
-    // 14 - Sounds
+    // 16 - Sounds
     public boolean sounds = true;
     public String soundCategories = DEFAULT_SOUND_CATEGORIES;
+
+    // 17 - Quest rewards
+    public boolean questRewards = true;
+    public boolean questRewardsElder = true;
+    public boolean questRewardsJournal = true;
+
+    // 18 - Fishing
+    public boolean fishingBaitPower = true;
+    public float fishingBaitPowerVariation = 0.5F;
+    public boolean fishingRodPower = true;
+    public float fishingRodPowerVariation = 0.5F;
+    public boolean fishingCatches = true;
+    public String fishingCatchesMode = "fish";
 
     // General
     public String excludeMobs = "";
@@ -165,30 +222,44 @@ public class SRSSettings extends ModSettings {
         addHealth(data, "animal", "6.4 - Randomiza a vida dos animais", "animal", animalHealth, animalHealthMode, animalHealthMin, animalHealthMax);
         addHealth(data, "boss", "6.5 - Randomiza a vida dos chefes", "chefe", bossHealth, bossHealthMode, bossHealthMin, bossHealthMax);
 
-        data.addBoolean("critChance", critChance, "7 - Randomiza a chance de critico de armas e equipamentos");
+        addStats(data, "Armor", "7", "Randomiza a defesa (armadura)", "a defesa");
+        addStats(data, "Knockback", "8", "Randomiza o empurrao recebido (1.0 = normal, 0 = nao se move)", "o empurrao");
+
+        data.addBoolean("critChance", critChance, "9 - Randomiza a chance de critico de armas e equipamentos");
         data.addFloat("weaponCritMin", weaponCritMin, "Critico base minimo adicionado a cada arma (0.05 = 5%)");
         data.addFloat("weaponCritMax", weaponCritMax, "Critico base maximo adicionado a cada arma");
         data.addFloat("equipmentCritMultMin", equipmentCritMultMin, "Multiplicador minimo do critico que o equipamento ja tinha");
         data.addFloat("equipmentCritMultMax", equipmentCritMultMax, "Multiplicador maximo do critico que o equipamento ja tinha");
         data.addFloat("equipmentCritBonusMax", equipmentCritBonusMax, "Critico extra maximo sorteado para cada armadura/acessorio");
 
-        data.addBoolean("armorSetBonuses", armorSetBonuses, "8 - Troca os bonus de conjunto entre as armaduras");
-        data.addBoolean("equipmentEffects", equipmentEffects, "9 - Troca os efeitos entre acessorios e entre pecas de armadura");
-        data.addBoolean("equipmentDamage", equipmentDamage, "10 - Randomiza o % de aumento de dano dos equipamentos");
+        data.addBoolean("armorSetBonuses", armorSetBonuses, "10 - Troca os bonus de conjunto entre as armaduras");
+        data.addBoolean("equipmentEffects", equipmentEffects, "11 - Troca os efeitos entre acessorios e entre pecas de armadura");
+        data.addBoolean("equipmentDamage", equipmentDamage, "12 - Randomiza o % de aumento de dano dos equipamentos");
         data.addFloat("equipmentDamageMultMin", equipmentDamageMultMin, "Multiplicador minimo do bonus de dano");
         data.addFloat("equipmentDamageMultMax", equipmentDamageMultMax, "Multiplicador maximo do bonus de dano");
 
-        data.addBoolean("visuals", visuals, "11 - Troca texturas entre itens, armaduras, armas, mobs, NPCs, cosmeticos (so entre imagens do mesmo tamanho)");
+        data.addBoolean("visuals", visuals, "13 - Troca texturas entre itens, armaduras, armas, mobs, NPCs, cosmeticos (so entre imagens do mesmo tamanho)");
         data.addSafeString("visualFolders", visualFolders, "Pastas de textura que participam (separadas por virgula)");
-        data.addBoolean("funnyBuggedSwap", funnyBuggedSwap, "11b - Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com bracos de zumbi). Funciona mesmo com visuals desligado");
+        data.addBoolean("funnyBuggedSwap", funnyBuggedSwap, "13b - Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com bracos de zumbi). Funciona mesmo com visuals desligado");
 
-        data.addBoolean("projectiles", projectiles, "12 - Troca os projeteis de armas, inimigos e chefes");
+        data.addBoolean("projectiles", projectiles, "14 - Troca os projeteis de armas, inimigos e chefes");
 
-        data.addBoolean("translations", translations, "13 - Embaralha as traducoes");
+        data.addBoolean("translations", translations, "15 - Embaralha as traducoes");
         data.addSafeString("translationMode", translationMode, "entries = troca textos inteiros dentro da mesma categoria | words = troca palavras de lugar");
 
-        data.addBoolean("sounds", sounds, "14 - Troca sons dentro da mesma categoria");
+        data.addBoolean("sounds", sounds, "16 - Troca sons dentro da mesma categoria");
         data.addSafeString("soundCategories", soundCategories, "Categorias: music,animals,creatures,environment,weather,weapons,impacts,interface,bosses,notes,other");
+
+        data.addBoolean("questRewards", questRewards, "17 - Recompensas aleatorias: troca os itens que as quests dao de recompensa");
+        data.addBoolean("questRewardsElder", questRewardsElder, "17.1 - Recompensas dos objetivos do Mestre Anciao");
+        data.addBoolean("questRewardsJournal", questRewardsJournal, "17.2 - Recompensas dos desafios do diario de aventura");
+
+        data.addBoolean("fishingBaitPower", fishingBaitPower, "18 - Pesca: randomiza o poder de pesca das iscas");
+        data.addFloat("fishingBaitPowerVariation", fishingBaitPowerVariation, "Variacao maxima do poder das iscas, para mais ou para menos (0.5 = ate 50%)");
+        data.addBoolean("fishingRodPower", fishingRodPower, "18 - Pesca: randomiza o poder de pesca das varas");
+        data.addFloat("fishingRodPowerVariation", fishingRodPowerVariation, "Variacao maxima do poder das varas, para mais ou para menos (0.5 = ate 50%)");
+        data.addBoolean("fishingCatches", fishingCatches, "18 - Pesca: randomiza o que e pescado");
+        data.addSafeString("fishingCatchesMode", fishingCatchesMode, "fish = cada peixe vira outro peixe | all = cada coisa pescada vira um item qualquer do jogo");
 
         data.addSafeString("excludeMobs", excludeMobs, "IDs de mobs que nunca devem ser randomizados (separados por virgula)");
         data.addSafeString("excludeItems", excludeItems, "IDs de itens que nunca devem ser randomizados (separados por virgula)");
@@ -253,6 +324,9 @@ public class SRSSettings extends ModSettings {
         bossHealthMin = data.getFloat("bossHealthMin", bossHealthMin, false);
         bossHealthMax = data.getFloat("bossHealthMax", bossHealthMax, false);
 
+        loadStats(data, "Armor");
+        loadStats(data, "Knockback");
+
         critChance = data.getBoolean("critChance", critChance, false);
         weaponCritMin = data.getFloat("weaponCritMin", weaponCritMin, false);
         weaponCritMax = data.getFloat("weaponCritMax", weaponCritMax, false);
@@ -278,6 +352,17 @@ public class SRSSettings extends ModSettings {
         sounds = data.getBoolean("sounds", sounds, false);
         soundCategories = data.getSafeString("soundCategories", soundCategories, false);
 
+        questRewards = data.getBoolean("questRewards", questRewards, false);
+        questRewardsElder = data.getBoolean("questRewardsElder", questRewardsElder, false);
+        questRewardsJournal = data.getBoolean("questRewardsJournal", questRewardsJournal, false);
+
+        fishingBaitPower = data.getBoolean("fishingBaitPower", fishingBaitPower, false);
+        fishingBaitPowerVariation = data.getFloat("fishingBaitPowerVariation", fishingBaitPowerVariation, false);
+        fishingRodPower = data.getBoolean("fishingRodPower", fishingRodPower, false);
+        fishingRodPowerVariation = data.getFloat("fishingRodPowerVariation", fishingRodPowerVariation, false);
+        fishingCatches = data.getBoolean("fishingCatches", fishingCatches, false);
+        fishingCatchesMode = data.getSafeString("fishingCatchesMode", fishingCatchesMode, false);
+
         excludeMobs = data.getSafeString("excludeMobs", excludeMobs, false);
         excludeItems = data.getSafeString("excludeItems", excludeItems, false);
         spoilerLog = data.getBoolean("spoilerLog", spoilerLog, false);
@@ -288,6 +373,49 @@ public class SRSSettings extends ModSettings {
         data.addSafeString(prefix + "HealthMode", mode, "multiplier = multiplicador aleatorio | preswap = o " + who + " que trocou de lugar fica com a vida do " + who + " que estava ali antes");
         data.addFloat(prefix + "HealthMin", min, "Multiplicador minimo da vida (nos dois modos; 1.0 e 1.0 = sem variacao)");
         data.addFloat(prefix + "HealthMax", max, "Multiplicador maximo da vida (nos dois modos)");
+    }
+
+    /** Settings field prefix, plural and singular name of the groups defense and knockback are randomized for. */
+    private static final String[][] STAT_GROUPS = {{"enemy", "inimigos", "inimigo"}, {"villager", "aldeoes", "aldeao"},
+            {"critter", "bichos", "bicho"}, {"animal", "animais", "animal"}, {"boss", "chefes", "chefe"}};
+
+    /** Writes the 4 settings (on, mode, min, max) of a stat for every group, e.g. enemyArmor, enemyArmorMode... */
+    private void addStats(SaveData data, String key, String number, String title, String what) {
+        for (int i = 0; i < STAT_GROUPS.length; i++) {
+            String f = STAT_GROUPS[i][0] + key;
+            String who = STAT_GROUPS[i][2];
+            data.addBoolean(f, (Boolean) field(f), number + "." + (i + 1) + " - " + title + " dos " + STAT_GROUPS[i][1]);
+            data.addSafeString(f + "Mode", (String) field(f + "Mode"), "multiplier = multiplicador aleatorio | preswap = o " + who
+                    + " que trocou de lugar fica com " + what + " do " + who + " que estava ali antes");
+            data.addFloat(f + "Min", (Float) field(f + "Min"), "Multiplicador minimo (nos dois modos; 1.0 e 1.0 = sem variacao)");
+            data.addFloat(f + "Max", (Float) field(f + "Max"), "Multiplicador maximo (nos dois modos)");
+        }
+    }
+
+    private void loadStats(LoadData data, String key) {
+        for (String[] group : STAT_GROUPS) {
+            String f = group[0] + key;
+            setField(f, data.getBoolean(f, (Boolean) field(f), false));
+            setField(f + "Mode", data.getSafeString(f + "Mode", (String) field(f + "Mode"), false));
+            setField(f + "Min", data.getFloat(f + "Min", (Float) field(f + "Min"), false));
+            setField(f + "Max", data.getFloat(f + "Max", (Float) field(f + "Max"), false));
+        }
+    }
+
+    private Object field(String name) {
+        try {
+            return SRSSettings.class.getField(name).get(this);
+        } catch (Exception e) {
+            throw new IllegalStateException("Missing setting " + name, e);
+        }
+    }
+
+    private void setField(String name, Object value) {
+        try {
+            SRSSettings.class.getField(name).set(this, value);
+        } catch (Exception e) {
+            throw new IllegalStateException("Missing setting " + name, e);
+        }
     }
 
     /** Serializes these settings in the same layout Necesse uses for the mod cfg file. */

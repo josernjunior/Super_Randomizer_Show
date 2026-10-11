@@ -5,7 +5,7 @@ import necesse.gfx.gameTexture.GameTexture;
 import net.bytebuddy.asm.Advice;
 import srs.random.VisualRandomizer;
 
-/** Feature 11: loads a different texture file than the one asked for. */
+/** Feature 13: loads a different texture file than the one asked for. */
 @ModMethodPatch(target = GameTexture.class, name = "fromFileRawUnknown", arguments = {String.class, boolean.class, boolean.class})
 public class GameTextureFromFilePatch {
 

@@ -16,10 +16,13 @@ import srs.core.Spoiler;
 import srs.network.PacketSRSConfig;
 import srs.random.DropRandomizer;
 import srs.random.EquipmentRandomizer;
+import srs.random.FishingRandomizer;
 import srs.random.MobDamageRandomizer;
 import srs.random.MobHealthRandomizer;
+import srs.random.MobStatRandomizer;
 import srs.random.MobSpawnRandomizer;
 import srs.random.ProjectileRandomizer;
+import srs.random.QuestRewardRandomizer;
 import srs.random.ShopRandomizer;
 import srs.random.SoundRandomizer;
 import srs.random.TranslationRandomizer;
@@ -35,7 +38,7 @@ import srs.random.WeaponRandomizer;
  * <li>preInit: makes sure there is a seed, shuffles translations (languages are already loaded)</li>
  * <li>init: registers the sync packet, the /srs command and, on clients, builds texture/sound swaps
  * (textures and sounds load between init and initResources)</li>
- * <li>postInit: all registries are closed, so mobs, drops, shops, weapons, equipment and projectiles are built</li>
+ * <li>postInit: all registries are closed, so mobs, drops, shops, weapons, equipment, projectiles, quest rewards and fishing are built</li>
  * <li>recipes are built by the game right after postInit (see RecipesGetDefaultRecipesPatch), then the spoiler is written</li>
  * </ol>
  */
@@ -87,11 +90,14 @@ public class SuperRandomizerShow {
         MobSpawnRandomizer.build();
         MobDamageRandomizer.build();
         MobHealthRandomizer.build();
+        MobStatRandomizer.build();
         DropRandomizer.build();
         ShopRandomizer.build();
         WeaponRandomizer.build();
         EquipmentRandomizer.build();
         ProjectileRandomizer.build();
+        QuestRewardRandomizer.build();
+        FishingRandomizer.build();
     }
 
     /** Called once the game has finished building recipes, the last step of loading. */

@@ -195,7 +195,7 @@ public final class DropRandomizer {
     // ===== Random item =====
 
     /** Every obtainable item that can be dropped as the random bonus item. */
-    private static synchronized List<Item> randomItemPool() {
+    public static synchronized List<Item> randomItemPool() {
         if (randomItemPool == null) {
             List<Item> pool = new ArrayList<>();
             for (Item item : ItemRegistry.getItems()) {

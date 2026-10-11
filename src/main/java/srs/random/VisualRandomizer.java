@@ -17,7 +17,7 @@ import srs.core.SeedRandom;
 import srs.core.Spoiler;
 
 /**
- * Feature 11: swaps texture files.
+ * Feature 13: swaps texture files.
  * <p>
  * Textures are grouped into families by name: "zombie", "zombiearms_left", "zombiearms_right" and "zombie_shadow"
  * are one family with the parts "", "arms_left", "arms_right" and "_shadow". Whole families are swapped with other
@@ -76,7 +76,7 @@ public final class VisualRandomizer {
             }
         }
 
-        List<String> lines = Spoiler.section("11 - Visuais (textura original -> textura mostrada)");
+        List<String> lines = Spoiler.section("13 - Visuais (textura original -> textura mostrada)");
         if (bugged) lines.add("Troca Bugada Divertida ligada: as partes dos mobs ([bugada]) trocam separadas umas das outras.");
         List<String> folderNames = new ArrayList<>(families.keySet());
         Collections.sort(folderNames);
