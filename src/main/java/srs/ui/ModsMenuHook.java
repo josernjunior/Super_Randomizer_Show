@@ -25,7 +25,8 @@ public final class ModsMenuHook {
         try {
             Rectangle box = info.getContentBox();
             int y = box.height + 5;
-            FormTextButton button = info.addComponent(new FormTextButton("Configurar randomizer", "Abrir as opções do Super Randomizer Show",
+            FormTextButton button = info.addComponent(new FormTextButton(Lang.t("Configurar randomizer", "Configure randomizer"),
+                    Lang.t("Abrir as opções do Super Randomizer Show", "Open the Super Randomizer Show options"),
                     5, y, info.getMinContentWidth() - 10, FormInputSize.SIZE_32, ButtonColor.BASE));
             // Not a temporary component: the screen must survive switching to a confirmation dialog and back.
             // SRSConfigForm removes its screen (the form and its tabs) when it closes.

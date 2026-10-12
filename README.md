@@ -34,7 +34,7 @@ Mod de randomizer para **Necesse** (versão 1.3.3). Tudo é gerado a partir de u
 
 ### Pelo menu do jogo (mais fácil)
 
-No menu principal, abra **Mods**, clique em **Super Randomizer Show** e depois no botão **Configurar randomizer**, no fim do painel da direita. A tela de configuração tem:
+No menu principal, abra **Mods**, clique em **Super Randomizer Show** e depois no botão **Configurar randomizer**, no fim do painel da direita. A tela segue o idioma do jogo: em português ela aparece em português, e em qualquer outro idioma aparece em inglês (o botão vira **Configure randomizer**). A tela de configuração tem:
 
 - a seed, com um botão **Sortear**, que pede confirmação antes de trocar;
 - uma aba para cada uma das 18 seções, na borda de cima da janela (o número da seção; passe o mouse para ver o nome), mais a aba **Avançado**; cada aba mostra só a sua seção, e quando uma opção está desligada as sub-opções dela ficam acinzentadas;

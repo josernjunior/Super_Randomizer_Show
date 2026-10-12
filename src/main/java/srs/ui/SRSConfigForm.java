@@ -38,6 +38,7 @@ import srs.core.SRS;
 /**
  * The randomizer settings screen, opened from the mod's page in Necesse's mods menu.
  * It edits a copy of the stored settings and writes the same cfg file the /srs command and manual edits use.
+ * Every text comes in Portuguese and English ({@link Lang}): the screen follows the game's language.
  */
 public class SRSConfigForm extends Form {
 
@@ -46,24 +47,34 @@ public class SRSConfigForm extends Form {
     private static final int INDENT = 24;
     /** Width of the gray note to the right of some checkboxes. */
     private static final int NOTE_WIDTH = 170;
-    private static final String PERFORMANCE_NOTE = "ativar pode afetar o desempenho do jogo";
 
     // Slider value formats
     private static final int MULTIPLIER = 0;
     private static final int PERCENT = 1;
     private static final int PERCENT_DECIMAL = 2;
 
+    // {key, Portuguese, English}
     private static final String[][] VISUAL_FOLDERS = {
-            {"items", "Ícones de itens"}, {"mobs", "Mobs e NPCs"}, {"player/armor", "Armaduras e cosméticos"},
-            {"player/weapons", "Armas (na mão)"}, {"player/holditems", "Itens segurados"}, {"player/hair", "Cabelos"},
-            {"projectiles", "Projéteis"}};
+            {"items", "Ícones de itens", "Item icons"}, {"mobs", "Mobs e NPCs", "Mobs and NPCs"},
+            {"player/armor", "Armaduras e cosméticos", "Armor and cosmetics"}, {"player/weapons", "Armas (na mão)", "Weapons (in hand)"},
+            {"player/holditems", "Itens segurados", "Held items"}, {"player/hair", "Cabelos", "Hair"}, {"projectiles", "Projéteis", "Projectiles"}};
     private static final String[][] DROP_GROUPS = {
-            {"enemies", "Inimigos"}, {"bosses", "Chefes"}, {"critters", "Bichos"}, {"animals", "Animais"}, {"rocks", "Rochas"},
-            {"trees", "Árvores"}, {"plants", "Plantas"}, {"crops", "Plantações"}, {"walls", "Paredes"}};
+            {"enemies", "Inimigos", "Enemies"}, {"bosses", "Chefes", "Bosses"}, {"critters", "Bichos", "Critters"},
+            {"animals", "Animais", "Animals"}, {"rocks", "Rochas", "Rocks"}, {"trees", "Árvores", "Trees"},
+            {"plants", "Plantas", "Plants"}, {"crops", "Plantações", "Crops"}, {"walls", "Paredes", "Walls"}};
     private static final String[][] SOUND_CATEGORIES = {
-            {"music", "Músicas"}, {"animals", "Animais"}, {"creatures", "Criaturas"}, {"environment", "Ambiente"},
-            {"weather", "Clima"}, {"weapons", "Armas"}, {"impacts", "Impactos e magias"}, {"interface", "Interface e baús"},
-            {"bosses", "Vozes de chefes e mobs"}, {"notes", "Notas musicais"}, {"other", "Outros"}};
+            {"music", "Músicas", "Music"}, {"animals", "Animais", "Animals"}, {"creatures", "Criaturas", "Creatures"},
+            {"environment", "Ambiente", "Environment"}, {"weather", "Clima", "Weather"}, {"weapons", "Armas", "Weapons"},
+            {"impacts", "Impactos e magias", "Impacts and magic"}, {"interface", "Interface e baús", "Interface and chests"},
+            {"bosses", "Vozes de chefes e mobs", "Boss and mob voices"}, {"notes", "Notas musicais", "Musical notes"},
+            {"other", "Outros", "Other"}};
+
+    // Texts used in many places, in the language the game had when the screen opened
+    private final String modeText = t("Modo:", "Mode:");
+    private final String randomMultiplierText = t("Multiplicador aleatório", "Random multiplier");
+    private final String minMultiplierText = t("Multiplicador mínimo", "Minimum multiplier");
+    private final String maxMultiplierText = t("Multiplicador máximo", "Maximum multiplier");
+    private final String performanceNote = t("ativar pode afetar o desempenho do jogo", "turning this on may affect game performance");
 
     private final ModsForm modsForm;
     private final Form modsMain;
@@ -103,17 +114,18 @@ public class SRSConfigForm extends Form {
         this.edit = copy(SRS.stored());
 
         addComponent(new FormLabel("Super Randomizer Show", new FontOptions(20), 0, WIDTH / 2, 8));
-        addComponent(new FormLabel("A mesma seed sempre gera o mesmo resultado. Mudanças valem depois de reiniciar o jogo.",
+        addComponent(new FormLabel(t("A mesma seed sempre gera o mesmo resultado. Mudanças valem depois de reiniciar o jogo.",
+                "The same seed always gives the same result. Changes apply after restarting the game."),
                 new FontOptions(12).color(getInterfaceStyle().inactiveTextColor), 0, WIDTH / 2, 34, WIDTH - 20));
 
         addComponent(new FormLabel("Seed:", new FontOptions(16), -1, 10, 60));
         seedInput = addComponent(new FormTextInput(60, 56, FormInputSize.SIZE_24, 200, 20));
         seedInput.setRegexMatchFull("-?[0-9]*");
-        seedInput.placeHolder = new StaticMessage("0 = sortear no próximo início");
+        seedInput.placeHolder = new StaticMessage(t("0 = sortear no próximo início", "0 = roll one on next start"));
         seedInput.setText(String.valueOf(edit.seed));
-        addComponent(new FormTextButton("Sortear", 268, 56, 86, FormInputSize.SIZE_24, ButtonColor.BASE)).onClicked(e -> askRandomSeed());
-        addComponent(new FormLabel("No multiplayer, a seed de todos deve ser a mesma", new FontOptions(12).color(getInterfaceStyle().inactiveTextColor),
-                -1, 362, 62, WIDTH - 372));
+        addComponent(new FormTextButton(t("Sortear", "Roll"), 268, 56, 86, FormInputSize.SIZE_24, ButtonColor.BASE)).onClicked(e -> askRandomSeed());
+        addComponent(new FormLabel(t("No multiplayer, a seed de todos deve ser a mesma", "In multiplayer, everyone must use the same seed"),
+                new FontOptions(12).color(getInterfaceStyle().inactiveTextColor), -1, 362, 62, WIDTH - 372));
 
         content = addComponent(new FormContentBox(5, 90, WIDTH - 10, HEIGHT - 90 - 85));
         addComponent(new FormBreakLine(FormBreakLine.ALIGN_BEGINNING, 5, 89, WIDTH - 10, true));
@@ -123,19 +135,22 @@ public class SRSConfigForm extends Form {
 
         int buttonWidth = (WIDTH - 25) / 4;
         int buttonY = HEIGHT - 45;
-        addComponent(new FormTextButton("Salvar", 5, buttonY, buttonWidth, FormInputSize.SIZE_32, ButtonColor.BASE)).onClicked(e -> save());
-        addComponent(new FormTextButton("Restaurar padrão", 10 + buttonWidth, buttonY, buttonWidth, FormInputSize.SIZE_32, ButtonColor.BASE)).onClicked(e -> resetDefaults());
+        addComponent(new FormTextButton(t("Salvar", "Save"), 5, buttonY, buttonWidth, FormInputSize.SIZE_32, ButtonColor.BASE)).onClicked(e -> save());
+        addComponent(new FormTextButton(t("Restaurar padrão", "Restore defaults"), 10 + buttonWidth, buttonY, buttonWidth, FormInputSize.SIZE_32,
+                ButtonColor.BASE)).onClicked(e -> resetDefaults());
         boolean canRestart = ModsForm.restartGameRunnable() != null;
-        restartButton = addComponent(new FormTextButton(canRestart ? "Reiniciar jogo" : "Fechar jogo", 15 + buttonWidth * 2, buttonY, buttonWidth,
-                FormInputSize.SIZE_32, ButtonColor.BASE));
+        restartButton = addComponent(new FormTextButton(canRestart ? t("Reiniciar jogo", "Restart game") : t("Fechar jogo", "Close game"),
+                15 + buttonWidth * 2, buttonY, buttonWidth, FormInputSize.SIZE_32, ButtonColor.BASE));
         restartButton.onClicked(e -> restart());
-        addComponent(new FormTextButton("Voltar", 20 + buttonWidth * 3, buttonY, buttonWidth, FormInputSize.SIZE_32, ButtonColor.BASE)).onClicked(e -> back());
+        addComponent(new FormTextButton(t("Voltar", "Back"), 20 + buttonWidth * 3, buttonY, buttonWidth, FormInputSize.SIZE_32, ButtonColor.BASE))
+                .onClicked(e -> back());
 
         buildContent();     // nothing selected yet: only collects the section titles for the tabs
         selectedTab = 0;
         buildContent();
         if (needsRestart()) {
-            setStatus("Há mudanças salvas que ainda não estão em uso. Reinicie o jogo para aplicar.", false);
+            setStatus(t("Há mudanças salvas que ainda não estão em uso. Reinicie o jogo para aplicar.",
+                    "There are saved changes that aren't in use yet. Restart the game to apply them."), false);
         }
         GameWindow window = WindowManager.getWindow();
         if (window != null) setPosMiddle(window.getHudWidth() / 2, window.getHudHeight() / 2);
@@ -153,7 +168,7 @@ public class SRSConfigForm extends Form {
     private static final int NUMBER_TAB_WIDTH = 31;
 
     /**
-     * One Necesse tab per section along the top edge of the form: its number as the label ("Avançado" has none),
+     * One Necesse tab per section along the top edge of the form: its number as the label ("Avançado"/"Advanced" has none),
      * its name as the tooltip. They're drawn outside the form, so they live in the screen next to it.
      */
     private void addTabs() {
@@ -201,213 +216,251 @@ public class SRSConfigForm extends Form {
         visibleEnd = 0;
         flow = new FormFlow(5);
 
-        section("1 - Aparecimento de mobs");
-        check(0, "Trocar onde inimigos, bichos, NPCs e chefes aparecem", s -> s.mobSpawns, (s, v) -> s.mobSpawns = v, null);
+        section(t("1 - Aparecimento de mobs", "1 - Mob spawns"));
+        check(0, t("Trocar onde inimigos, bichos, NPCs e chefes aparecem", "Swap where enemies, critters, NPCs and bosses spawn"),
+                s -> s.mobSpawns, (s, v) -> s.mobSpawns = v, null);
         BooleanSupplier mobs = () -> edit.mobSpawns;
-        check(1, "Inimigos que nascem naturalmente", s -> s.mobSpawnHostiles, (s, v) -> s.mobSpawnHostiles = v, mobs);
-        check(1, "Bichos (criaturas passivas)", s -> s.mobSpawnCritters, (s, v) -> s.mobSpawnCritters = v, mobs);
-        check(1, "Animais (ovelhas, vacas, porcos, galinhas, avestruzes, pinguins...) em mundos e áreas novas", s -> s.mobSpawnAnimals,
+        check(1, t("Inimigos que nascem naturalmente", "Naturally spawning enemies"), s -> s.mobSpawnHostiles, (s, v) -> s.mobSpawnHostiles = v, mobs);
+        check(1, t("Bichos (criaturas passivas)", "Critters (passive creatures)"), s -> s.mobSpawnCritters, (s, v) -> s.mobSpawnCritters = v, mobs);
+        check(1, t("Animais (ovelhas, vacas, porcos, galinhas, avestruzes, pinguins...) em mundos e áreas novas",
+                "Animals (sheep, cows, pigs, chickens, ostriches, penguins...) in new worlds and areas"), s -> s.mobSpawnAnimals,
                 (s, v) -> s.mobSpawnAnimals = v, mobs);
-        check(1, "NPCs de vilas e estruturas", s -> s.mobSpawnTownNPCs, (s, v) -> s.mobSpawnTownNPCs = v, mobs);
+        check(1, t("NPCs de vilas e estruturas", "Village and structure NPCs"), s -> s.mobSpawnTownNPCs, (s, v) -> s.mobSpawnTownNPCs = v, mobs);
         flow.next(4);
-        label(1, "1.1 - NPCs que podem trocar de lugar entre si:");
+        label(1, t("1.1 - NPCs que podem trocar de lugar entre si:", "1.1 - NPCs that can swap places with each other:"));
         listChecks(2, MobChoices.townNPCs(edit.townNPCPool), s -> s.townNPCPool, (s, v) -> s.townNPCPool = v, () -> edit.mobSpawns && edit.mobSpawnTownNPCs);
         flow.next(4);
-        label(1, "1.2 - Chefes que podem trocar entre si (vale também para a troca de drops):");
+        label(1, t("1.2 - Chefes que podem trocar entre si (vale também para a troca de drops):",
+                "1.2 - Bosses that can swap with each other (also used by the drop swap):"));
         listChecks(2, numbered(MobChoices.bosses(edit.bossPool)), s -> s.bossPool, (s, v) -> s.bossPool = v,
                 () -> edit.mobSpawns || edit.drops && SRS.parseList(edit.dropGroups).contains("bosses"));
 
         section("2 - Drops");
-        check(0, "Trocar quem dropa o quê", s -> s.drops, (s, v) -> s.drops = v, null);
-        label(1, "Grupos que participam:");
-        listChecks(2, 3, DROP_GROUPS, s -> s.dropGroups, (s, v) -> s.dropGroups = v, () -> edit.drops);
+        check(0, t("Trocar quem dropa o quê", "Swap who drops what"), s -> s.drops, (s, v) -> s.drops = v, null);
+        label(1, t("Grupos que participam:", "Groups that take part:"));
+        listChecks(2, 3, Lang.pairs(DROP_GROUPS), s -> s.dropGroups, (s, v) -> s.dropGroups = v, () -> edit.drops);
         Map<String, String> dropModes = new LinkedHashMap<>();
-        dropModes.put("group", "Troca entre o mesmo grupo/classificação");
-        dropModes.put("all", "Troca totalmente aleatória");
-        dropdown(1, "Modo:", dropModes, s -> s.dropsMode, (s, v) -> s.dropsMode = v, () -> edit.drops);
-        label(1, "Na troca totalmente aleatória, os grupos marcados viram um grupo só: um zumbi pode dropar como uma árvore, e uma rocha "
-                + "como um chefe. Quem dropa algo só troca com quem também dropa. Objetos colocados por você devolvem o próprio item.");
-        check(0, "Randomizar a quantidade de cada item dropado (nunca zera um drop)", s -> s.dropQuantities, (s, v) -> s.dropQuantities = v, null);
-        slider(1, "Quantidade mínima", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.dropQuantityMin, (s, v) -> s.dropQuantityMin = v);
-        slider(1, "Quantidade máxima", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.dropQuantityMax, (s, v) -> s.dropQuantityMax = v);
-        check(0, "Chance de dropar também um item aleatório ao matar um mob", s -> s.randomItemDrop, (s, v) -> s.randomItemDrop = v, null);
-        slider(1, "Chance do item aleatório", 0.005F, 1.0F, 0.005F, PERCENT_DECIMAL, s -> s.randomItemDropChance, (s, v) -> s.randomItemDropChance = v);
+        dropModes.put("group", t("Troca entre o mesmo grupo/classificação", "Swap within the same group/category"));
+        dropModes.put("all", t("Troca totalmente aleatória", "Fully random swap"));
+        dropdown(1, modeText, dropModes, s -> s.dropsMode, (s, v) -> s.dropsMode = v, () -> edit.drops);
+        label(1, t("Na troca totalmente aleatória, os grupos marcados viram um grupo só: um zumbi pode dropar como uma árvore, e uma rocha "
+                        + "como um chefe. Quem dropa algo só troca com quem também dropa. Objetos colocados por você devolvem o próprio item.",
+                "In the fully random swap, the checked groups become a single group: a zombie can drop like a tree, and a rock "
+                        + "like a boss. Anything that drops something only swaps with something that also drops. Objects you placed give back "
+                        + "their own item."));
+        check(0, t("Randomizar a quantidade de cada item dropado (nunca zera um drop)", "Randomize the amount of each dropped item (never down to zero)"),
+                s -> s.dropQuantities, (s, v) -> s.dropQuantities = v, null);
+        slider(1, t("Quantidade mínima", "Minimum amount"), 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.dropQuantityMin, (s, v) -> s.dropQuantityMin = v);
+        slider(1, t("Quantidade máxima", "Maximum amount"), 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.dropQuantityMax, (s, v) -> s.dropQuantityMax = v);
+        check(0, t("Chance de dropar também um item aleatório ao matar um mob", "Chance to also drop a random item when killing a mob"),
+                s -> s.randomItemDrop, (s, v) -> s.randomItemDrop = v, null);
+        slider(1, t("Chance do item aleatório", "Random item chance"), 0.005F, 1.0F, 0.005F, PERCENT_DECIMAL, s -> s.randomItemDropChance,
+                (s, v) -> s.randomItemDropChance = v);
 
-        section("3 - Receitas");
-        check(0, "Embaralhar os ingredientes das receitas", s -> s.recipes, (s, v) -> s.recipes = v, null);
-        check(1, "Só trocar entre receitas da mesma estação de trabalho (mais jogável)", s -> s.recipesSameStation,
+        section(t("3 - Receitas", "3 - Recipes"));
+        check(0, t("Embaralhar os ingredientes das receitas", "Shuffle recipe ingredients"), s -> s.recipes, (s, v) -> s.recipes = v, null);
+        check(1, t("Só trocar entre receitas da mesma estação de trabalho (mais jogável)",
+                "Only swap between recipes of the same crafting station (more playable)"), s -> s.recipesSameStation,
                 (s, v) -> s.recipesSameStation = v, () -> edit.recipes);
-        slider(1, "Nível de embaralhamento (parte das receitas que trocam de ingredientes)", 0.01F, 1.0F, 0.01F, PERCENT,
-                s -> s.recipesShuffleLevel, (s, v) -> s.recipesShuffleLevel = v);
+        slider(1, t("Nível de embaralhamento (parte das receitas que trocam de ingredientes)", "Shuffle level (share of recipes that swap ingredients)"),
+                0.01F, 1.0F, 0.01F, PERCENT, s -> s.recipesShuffleLevel, (s, v) -> s.recipesShuffleLevel = v);
         flow.next(4);
-        check(0, "Poção de Ressureição grátis",
-                "Ativando esta opção, poção de ressureição é feita sem precisar de ingredientes na bancada de alquimia",
+        check(0, t("Poção de Ressureição grátis", "Free Revival Potion"),
+                t("Ativando esta opção, poção de ressureição é feita sem precisar de ingredientes na bancada de alquimia",
+                        "With this option on, the revival potion is crafted at the alchemy table without needing any ingredients"),
                 s -> s.recipesFreeRevivalPotion, (s, v) -> s.recipesFreeRevivalPotion = v, null);
 
-        section("4 - Lojas");
-        check(0, "Embaralhar as lojas dos NPCs de cidade", s -> s.shops, (s, v) -> s.shops = v, null);
+        section(t("4 - Lojas", "4 - Shops"));
+        check(0, t("Embaralhar as lojas dos NPCs de cidade", "Shuffle the town NPCs' shops"), s -> s.shops, (s, v) -> s.shops = v, null);
         Map<String, String> shopModes = new LinkedHashMap<>();
-        shopModes.put("items", "Trocar cada item vendido e comprado");
-        shopModes.put("npcs", "Só trocar as lojas inteiras entre os aldeões");
-        dropdown(1, "Modo:", shopModes, s -> s.shopsMode, (s, v) -> s.shopsMode = v, () -> edit.shops);
+        shopModes.put("items", t("Trocar cada item vendido e comprado", "Swap every item sold and bought"));
+        shopModes.put("npcs", t("Só trocar as lojas inteiras entre os aldeões", "Only swap whole shops between villagers"));
+        dropdown(1, modeText, shopModes, s -> s.shopsMode, (s, v) -> s.shopsMode = v, () -> edit.shops);
         flow.next(4);
-        check(0, "Randomizar os preços de compra e venda", s -> s.shopPrices, (s, v) -> s.shopPrices = v, null);
-        slider(1, "Multiplicador mínimo dos preços", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.shopPricesMin, (s, v) -> s.shopPricesMin = v);
-        slider(1, "Multiplicador máximo dos preços", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.shopPricesMax, (s, v) -> s.shopPricesMax = v);
+        check(0, t("Randomizar os preços de compra e venda", "Randomize buying and selling prices"), s -> s.shopPrices, (s, v) -> s.shopPrices = v, null);
+        slider(1, t("Multiplicador mínimo dos preços", "Minimum price multiplier"), 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.shopPricesMin,
+                (s, v) -> s.shopPricesMin = v);
+        slider(1, t("Multiplicador máximo dos preços", "Maximum price multiplier"), 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.shopPricesMax,
+                (s, v) -> s.shopPricesMax = v);
 
-        section("5 - Danos");
-        check(0, "5.1 - Armas", s -> s.weaponDamage, (s, v) -> s.weaponDamage = v, null);
+        section(t("5 - Danos", "5 - Damage"));
+        check(0, t("5.1 - Armas", "5.1 - Weapons"), s -> s.weaponDamage, (s, v) -> s.weaponDamage = v, null);
         Map<String, String> modes = new LinkedHashMap<>();
-        modes.put("multiplier", "Multiplicador aleatório");
-        modes.put("shuffle", "Trocar entre armas de força parecida");
-        modes.put("chaos", "Caos: trocar com qualquer arma do mesmo tipo");
-        dropdown(1, "Modo:", modes, s -> s.weaponDamageMode, (s, v) -> s.weaponDamageMode = v, () -> edit.weaponDamage);
-        slider(1, "Multiplicador mínimo (modo multiplicador)", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.weaponDamageMin, (s, v) -> s.weaponDamageMin = v);
-        slider(1, "Multiplicador máximo (modo multiplicador)", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.weaponDamageMax, (s, v) -> s.weaponDamageMax = v);
+        modes.put("multiplier", randomMultiplierText);
+        modes.put("shuffle", t("Trocar entre armas de força parecida", "Swap between weapons of similar strength"));
+        modes.put("chaos", t("Caos: trocar com qualquer arma do mesmo tipo", "Chaos: swap with any weapon of the same type"));
+        dropdown(1, modeText, modes, s -> s.weaponDamageMode, (s, v) -> s.weaponDamageMode = v, () -> edit.weaponDamage);
+        slider(1, t("Multiplicador mínimo (modo multiplicador)", "Minimum multiplier (multiplier mode)"), 0.1F, 5.0F, 0.1F, MULTIPLIER,
+                s -> s.weaponDamageMin, (s, v) -> s.weaponDamageMin = v);
+        slider(1, t("Multiplicador máximo (modo multiplicador)", "Maximum multiplier (multiplier mode)"), 0.1F, 5.0F, 0.1F, MULTIPLIER,
+                s -> s.weaponDamageMax, (s, v) -> s.weaponDamageMax = v);
 
         flow.next(4);
-        check(0, "5.2 - Dano dos inimigos", s -> s.enemyDamage, (s, v) -> s.enemyDamage = v, null);
+        check(0, t("5.2 - Dano dos inimigos", "5.2 - Enemy damage"), s -> s.enemyDamage, (s, v) -> s.enemyDamage = v, null);
         Map<String, String> enemyModes = new LinkedHashMap<>();
-        enemyModes.put("multiplier", "Multiplicador aleatório");
-        enemyModes.put("preswap", "Usar o dano do inimigo antes da troca");
-        dropdown(1, "Modo:", enemyModes, s -> s.enemyDamageMode, (s, v) -> s.enemyDamageMode = v, () -> edit.enemyDamage);
-        label(1, "As barras valem nos dois modos: no \"antes da troca\" elas multiplicam o dano do inimigo original (x1,0 e x1,0 = dano igual ao dele).");
-        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.enemyDamageMin, (s, v) -> s.enemyDamageMin = v);
-        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.enemyDamageMax, (s, v) -> s.enemyDamageMax = v);
+        enemyModes.put("multiplier", randomMultiplierText);
+        enemyModes.put("preswap", t("Usar o dano do inimigo antes da troca", "Use the pre-swap enemy's damage"));
+        dropdown(1, modeText, enemyModes, s -> s.enemyDamageMode, (s, v) -> s.enemyDamageMode = v, () -> edit.enemyDamage);
+        label(1, t("As barras valem nos dois modos: no \"antes da troca\" elas multiplicam o dano do inimigo original (x1,0 e x1,0 = dano igual ao dele).",
+                "The sliders apply in both modes: in \"pre-swap\" mode they multiply the original enemy's damage (x1.0 and x1.0 = the same damage)."));
+        slider(1, minMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.enemyDamageMin, (s, v) -> s.enemyDamageMin = v);
+        slider(1, maxMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.enemyDamageMax, (s, v) -> s.enemyDamageMax = v);
 
         flow.next(4);
-        check(0, "5.3 - Dano dos chefes", s -> s.bossDamage, (s, v) -> s.bossDamage = v, null);
+        check(0, t("5.3 - Dano dos chefes", "5.3 - Boss damage"), s -> s.bossDamage, (s, v) -> s.bossDamage = v, null);
         Map<String, String> bossModes = new LinkedHashMap<>();
-        bossModes.put("multiplier", "Multiplicador aleatório");
-        bossModes.put("preswap", "Usar o dano do chefe antes da troca");
-        dropdown(1, "Modo:", bossModes, s -> s.bossDamageMode, (s, v) -> s.bossDamageMode = v, () -> edit.bossDamage);
-        label(1, "As barras valem nos dois modos: no \"antes da troca\" elas multiplicam o dano do chefe original (x1,0 e x1,0 = dano igual ao dele).");
-        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.bossDamageMin, (s, v) -> s.bossDamageMin = v);
-        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.bossDamageMax, (s, v) -> s.bossDamageMax = v);
+        bossModes.put("multiplier", randomMultiplierText);
+        bossModes.put("preswap", t("Usar o dano do chefe antes da troca", "Use the pre-swap boss's damage"));
+        dropdown(1, modeText, bossModes, s -> s.bossDamageMode, (s, v) -> s.bossDamageMode = v, () -> edit.bossDamage);
+        label(1, t("As barras valem nos dois modos: no \"antes da troca\" elas multiplicam o dano do chefe original (x1,0 e x1,0 = dano igual ao dele).",
+                "The sliders apply in both modes: in \"pre-swap\" mode they multiply the original boss's damage (x1.0 and x1.0 = the same damage)."));
+        slider(1, minMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.bossDamageMin, (s, v) -> s.bossDamageMin = v);
+        slider(1, maxMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.bossDamageMax, (s, v) -> s.bossDamageMax = v);
 
-        section("6 - Vida");
-        label(0, "Em todos os itens abaixo, as barras valem nos dois modos: no \"antes da troca\" elas multiplicam a vida do mob original (x1,0 e x1,0 = vida igual à dele).");
-        healthBlock("6.1 - Vida dos inimigos", "Usar a vida do inimigo antes da troca", s -> s.enemyHealth, (s, v) -> s.enemyHealth = v,
-                s -> s.enemyHealthMode, (s, v) -> s.enemyHealthMode = v, s -> s.enemyHealthMin, (s, v) -> s.enemyHealthMin = v,
-                s -> s.enemyHealthMax, (s, v) -> s.enemyHealthMax = v);
-        healthBlock("6.2 - Vida dos aldeões", "Usar a vida do aldeão antes da troca", s -> s.villagerHealth, (s, v) -> s.villagerHealth = v,
-                s -> s.villagerHealthMode, (s, v) -> s.villagerHealthMode = v, s -> s.villagerHealthMin, (s, v) -> s.villagerHealthMin = v,
-                s -> s.villagerHealthMax, (s, v) -> s.villagerHealthMax = v);
-        healthBlock("6.3 - Vida dos bichos", "Usar a vida do bicho antes da troca", s -> s.critterHealth, (s, v) -> s.critterHealth = v,
-                s -> s.critterHealthMode, (s, v) -> s.critterHealthMode = v, s -> s.critterHealthMin, (s, v) -> s.critterHealthMin = v,
-                s -> s.critterHealthMax, (s, v) -> s.critterHealthMax = v);
-        healthBlock("6.4 - Vida dos animais", "Usar a vida do animal antes da troca", s -> s.animalHealth, (s, v) -> s.animalHealth = v,
-                s -> s.animalHealthMode, (s, v) -> s.animalHealthMode = v, s -> s.animalHealthMin, (s, v) -> s.animalHealthMin = v,
-                s -> s.animalHealthMax, (s, v) -> s.animalHealthMax = v);
-        healthBlock("6.5 - Vida dos chefes", "Usar a vida do chefe antes da troca", s -> s.bossHealth, (s, v) -> s.bossHealth = v,
-                s -> s.bossHealthMode, (s, v) -> s.bossHealthMode = v, s -> s.bossHealthMin, (s, v) -> s.bossHealthMin = v,
-                s -> s.bossHealthMax, (s, v) -> s.bossHealthMax = v);
+        section(t("6 - Vida", "6 - Health"));
+        label(0, t("Em todos os itens abaixo, as barras valem nos dois modos: no \"antes da troca\" elas multiplicam a vida do mob original "
+                        + "(x1,0 e x1,0 = vida igual à dele).",
+                "In every option below, the sliders apply in both modes: in \"pre-swap\" mode they multiply the original mob's health "
+                        + "(x1.0 and x1.0 = the same health)."));
+        statBlocks("6", "Vida", "Health", "a vida", "health");
 
-        section("7 - Defesa");
-        label(0, "A defesa é a armadura: cada golpe perde metade da armadura em dano. As barras valem nos dois modos: no \"antes da troca\" "
-                + "elas multiplicam a defesa do mob original (x1,0 e x1,0 = defesa igual à dele).");
-        statBlocks("7", "Defesa", "Armor", "a defesa");
+        section(t("7 - Defesa", "7 - Defense"));
+        label(0, t("A defesa é a armadura: cada golpe perde metade da armadura em dano. As barras valem nos dois modos: no \"antes da troca\" "
+                        + "elas multiplicam a defesa do mob original (x1,0 e x1,0 = defesa igual à dele).",
+                "Defense is armor: every hit loses half the armor in damage. The sliders apply in both modes: in \"pre-swap\" mode "
+                        + "they multiply the original mob's defense (x1.0 and x1.0 = the same defense)."));
+        statBlocks("7", "Defesa", "Armor", "a defesa", "defense");
 
-        section("8 - Empurrão");
-        label(0, "O empurrão é o quanto o mob é jogado para trás ao levar um golpe (normal = x1,0; 0 = não se move). As barras valem nos dois modos: "
-                + "no \"antes da troca\" elas multiplicam o empurrão do mob original.");
-        statBlocks("8", "Empurrão", "Knockback", "o empurrão");
+        section(t("8 - Empurrão", "8 - Knockback"));
+        label(0, t("O empurrão é o quanto o mob é jogado para trás ao levar um golpe (normal = x1,0; 0 = não se move). As barras valem nos dois modos: "
+                        + "no \"antes da troca\" elas multiplicam o empurrão do mob original.",
+                "Knockback is how far the mob is pushed back when hit (normal = x1.0; 0 = doesn't move). The sliders apply in both modes: "
+                        + "in \"pre-swap\" mode they multiply the original mob's knockback."));
+        statBlocks("8", "Empurrão", "Knockback", "o empurrão", "knockback");
 
-        section("9 - Chance de crítico");
-        check(0, "Randomizar o crítico de armas e equipamentos", s -> s.critChance, (s, v) -> s.critChance = v, null);
-        slider(1, "Crítico extra mínimo em cada arma", 0.0F, 1.0F, 0.01F, PERCENT, s -> s.weaponCritMin, (s, v) -> s.weaponCritMin = v);
-        slider(1, "Crítico extra máximo em cada arma", 0.0F, 1.0F, 0.01F, PERCENT, s -> s.weaponCritMax, (s, v) -> s.weaponCritMax = v);
-        slider(1, "Multiplicador mínimo do crítico dos equipamentos", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentCritMultMin, (s, v) -> s.equipmentCritMultMin = v);
-        slider(1, "Multiplicador máximo do crítico dos equipamentos", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentCritMultMax, (s, v) -> s.equipmentCritMultMax = v);
-        slider(1, "Crítico extra máximo por armadura/acessório", 0.0F, 0.5F, 0.01F, PERCENT, s -> s.equipmentCritBonusMax, (s, v) -> s.equipmentCritBonusMax = v);
+        section(t("9 - Chance de crítico", "9 - Critical chance"));
+        check(0, t("Randomizar o crítico de armas e equipamentos", "Randomize the critical chance of weapons and equipment"),
+                s -> s.critChance, (s, v) -> s.critChance = v, null);
+        slider(1, t("Crítico extra mínimo em cada arma", "Minimum extra critical chance on each weapon"), 0.0F, 1.0F, 0.01F, PERCENT,
+                s -> s.weaponCritMin, (s, v) -> s.weaponCritMin = v);
+        slider(1, t("Crítico extra máximo em cada arma", "Maximum extra critical chance on each weapon"), 0.0F, 1.0F, 0.01F, PERCENT,
+                s -> s.weaponCritMax, (s, v) -> s.weaponCritMax = v);
+        slider(1, t("Multiplicador mínimo do crítico dos equipamentos", "Minimum multiplier of equipment critical chance"), 0.0F, 5.0F, 0.1F,
+                MULTIPLIER, s -> s.equipmentCritMultMin, (s, v) -> s.equipmentCritMultMin = v);
+        slider(1, t("Multiplicador máximo do crítico dos equipamentos", "Maximum multiplier of equipment critical chance"), 0.0F, 5.0F, 0.1F,
+                MULTIPLIER, s -> s.equipmentCritMultMax, (s, v) -> s.equipmentCritMultMax = v);
+        slider(1, t("Crítico extra máximo por armadura/acessório", "Maximum extra critical chance per armor piece/trinket"), 0.0F, 0.5F, 0.01F,
+                PERCENT, s -> s.equipmentCritBonusMax, (s, v) -> s.equipmentCritBonusMax = v);
 
-        section("10 - Bônus de conjunto");
-        check(0, "Randomizar os bônus de conjunto das armaduras", s -> s.armorSetBonuses, (s, v) -> s.armorSetBonuses = v, null);
+        section(t("10 - Bônus de conjunto", "10 - Set bonuses"));
+        check(0, t("Randomizar os bônus de conjunto das armaduras", "Randomize armor set bonuses"), s -> s.armorSetBonuses,
+                (s, v) -> s.armorSetBonuses = v, null);
         Map<String, String> setModes = new LinkedHashMap<>();
-        setModes.put("swap", "Trocar os bônus entre os conjuntos");
-        setModes.put("double", "Bônus duplo: o próprio + o de outro conjunto");
-        dropdown(1, "Modo:", setModes, s -> s.armorSetBonusMode, (s, v) -> s.armorSetBonusMode = v, () -> edit.armorSetBonuses);
+        setModes.put("swap", t("Trocar os bônus entre os conjuntos", "Swap the bonuses between sets"));
+        setModes.put("double", t("Bônus duplo: o próprio + o de outro conjunto", "Double bonus: its own + another set's"));
+        dropdown(1, modeText, setModes, s -> s.armorSetBonusMode, (s, v) -> s.armorSetBonusMode = v, () -> edit.armorSetBonuses);
 
-        section("11 - Efeitos de equipamentos");
-        check(0, "Trocar os efeitos entre acessórios e entre peças de armadura do mesmo slot", s -> s.equipmentEffects, (s, v) -> s.equipmentEffects = v, null);
+        section(t("11 - Efeitos de equipamentos", "11 - Equipment effects"));
+        check(0, t("Trocar os efeitos entre acessórios e entre peças de armadura do mesmo slot",
+                "Swap the effects between trinkets and between armor pieces of the same slot"), s -> s.equipmentEffects,
+                (s, v) -> s.equipmentEffects = v, null);
         Map<String, String> effectModes = new LinkedHashMap<>();
-        effectModes.put("all", "Trocar com qualquer um");
-        effectModes.put("class", "Só entre itens da mesma classe");
-        effectModes.put("progression", "Só entre itens da mesma progressão");
-        dropdown(1, "Modo:", effectModes, s -> s.equipmentEffectsMode, (s, v) -> s.equipmentEffectsMode = v, () -> edit.equipmentEffects);
-        label(1, "Classes: corpo a corpo, distância, magia, invocação e geral (lidas dos efeitos do acessório e do capacete do conjunto). "
-                + "Progressão: itens ordenados por raridade e valor (armaduras pela defesa) só trocam com os vizinhos nessa ordem.");
+        effectModes.put("all", t("Trocar com qualquer um", "Swap with any of them"));
+        effectModes.put("class", t("Só entre itens da mesma classe", "Only between items of the same class"));
+        effectModes.put("progression", t("Só entre itens da mesma progressão", "Only between items of the same progression"));
+        dropdown(1, modeText, effectModes, s -> s.equipmentEffectsMode, (s, v) -> s.equipmentEffectsMode = v, () -> edit.equipmentEffects);
+        label(1, t("Classes: corpo a corpo, distância, magia, invocação e geral (lidas dos efeitos do acessório e do capacete do conjunto). "
+                        + "Progressão: itens ordenados por raridade e valor (armaduras pela defesa) só trocam com os vizinhos nessa ordem.",
+                "Classes: melee, ranged, magic, summon and general (read from the effects of the trinket and of the set's helmet). "
+                        + "Progression: items sorted by rarity and value (armor by defense) only swap with their neighbors in that order."));
 
-        section("12 - Dano dos equipamentos e pergaminhos");
-        check(0, "Randomizar o bônus de dano dos equipamentos", s -> s.equipmentDamage, (s, v) -> s.equipmentDamage = v, null);
-        slider(1, "Multiplicador mínimo", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentDamageMultMin, (s, v) -> s.equipmentDamageMultMin = v);
-        slider(1, "Multiplicador máximo", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentDamageMultMax, (s, v) -> s.equipmentDamageMultMax = v);
+        section(t("12 - Dano dos equipamentos e pergaminhos", "12 - Equipment damage and scrolls"));
+        check(0, t("Randomizar o bônus de dano dos equipamentos", "Randomize the damage bonus of equipment"), s -> s.equipmentDamage,
+                (s, v) -> s.equipmentDamage = v, null);
+        slider(1, minMultiplierText, 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentDamageMultMin, (s, v) -> s.equipmentDamageMultMin = v);
+        slider(1, maxMultiplierText, 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentDamageMultMax, (s, v) -> s.equipmentDamageMultMax = v);
         flow.next(4);
-        check(0, "Randomizar os pergaminhos: os valores de cada encantamento são multiplicados por um fator fixo", s -> s.enchantScrolls,
+        check(0, t("Randomizar os pergaminhos: os valores de cada encantamento são multiplicados por um fator fixo",
+                "Randomize scrolls: the values of each enchantment are multiplied by a fixed factor"), s -> s.enchantScrolls,
                 (s, v) -> s.enchantScrolls = v, null);
-        slider(1, "Multiplicador mínimo dos encantamentos", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.enchantScrollsMin, (s, v) -> s.enchantScrollsMin = v);
-        slider(1, "Multiplicador máximo dos encantamentos", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.enchantScrollsMax, (s, v) -> s.enchantScrollsMax = v);
+        slider(1, t("Multiplicador mínimo dos encantamentos", "Minimum enchantment multiplier"), 0.0F, 5.0F, 0.1F, MULTIPLIER,
+                s -> s.enchantScrollsMin, (s, v) -> s.enchantScrollsMin = v);
+        slider(1, t("Multiplicador máximo dos encantamentos", "Maximum enchantment multiplier"), 0.0F, 5.0F, 0.1F, MULTIPLIER,
+                s -> s.enchantScrollsMax, (s, v) -> s.enchantScrollsMax = v);
 
-        section("13 - Visuais");
-        check(0, "Trocar as texturas (um mob vira outro mob inteiro, um capacete vira outro capacete...)", s -> s.visuals, (s, v) -> s.visuals = v, null);
-        label(1, "O que trocar:");
-        listChecks(2, VISUAL_FOLDERS, s -> s.visualFolders, (s, v) -> s.visualFolders = v, () -> edit.visuals);
+        section(t("13 - Visuais", "13 - Visuals"));
+        check(0, t("Trocar as texturas (um mob vira outro mob inteiro, um capacete vira outro capacete...)",
+                "Swap textures (a mob becomes another whole mob, a helmet becomes another helmet...)"), s -> s.visuals, (s, v) -> s.visuals = v, null);
+        label(1, t("O que trocar:", "What to swap:"));
+        listChecks(2, Lang.pairs(VISUAL_FOLDERS), s -> s.visualFolders, (s, v) -> s.visualFolders = v, () -> edit.visuals);
         flow.next(4);
-        check(0, "Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com braços de zumbi). Funciona mesmo com os visuais desligados.",
+        check(0, t("Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com braços de zumbi). Funciona mesmo com os visuais desligados.",
+                "Funny Bugged Swap: mob parts swap separately (e.g. a slime with zombie arms). Works even with visuals off."),
                 s -> s.funnyBuggedSwap, (s, v) -> s.funnyBuggedSwap = v, null);
         flow.next(4);
-        check(0, "Rotação: a seed gera 3 opções de troca de visual, que se alternam a cada 6 minutos de jogo", PERFORMANCE_NOTE,
+        check(0, t("Rotação: a seed gera 3 opções de troca de visual, que se alternam a cada 6 minutos de jogo",
+                "Rotation: the seed makes 3 visual swap options, which take turns every 6 minutes of play"), performanceNote,
                 s -> s.visualRotation, (s, v) -> s.visualRotation = v, () -> edit.visuals || edit.funnyBuggedSwap);
 
-        section("14 - Projéteis");
-        check(0, "Trocar os projéteis de armas, inimigos e chefes", s -> s.projectiles, (s, v) -> s.projectiles = v, null);
+        section(t("14 - Projéteis", "14 - Projectiles"));
+        check(0, t("Trocar os projéteis de armas, inimigos e chefes", "Swap the projectiles of weapons, enemies and bosses"), s -> s.projectiles,
+                (s, v) -> s.projectiles = v, null);
         flow.next(4);
-        check(0, "Randomizar a velocidade dos projéteis (fator fixo por tipo)", s -> s.projectileSpeed, (s, v) -> s.projectileSpeed = v, null);
-        slider(1, "Velocidade mínima", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.projectileSpeedMin, (s, v) -> s.projectileSpeedMin = v);
-        slider(1, "Velocidade máxima", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.projectileSpeedMax, (s, v) -> s.projectileSpeedMax = v);
+        check(0, t("Randomizar a velocidade dos projéteis (fator fixo por tipo)", "Randomize projectile speed (fixed factor per type)"),
+                s -> s.projectileSpeed, (s, v) -> s.projectileSpeed = v, null);
+        slider(1, t("Velocidade mínima", "Minimum speed"), 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.projectileSpeedMin, (s, v) -> s.projectileSpeedMin = v);
+        slider(1, t("Velocidade máxima", "Maximum speed"), 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.projectileSpeedMax, (s, v) -> s.projectileSpeedMax = v);
 
-        section("15 - Traduções");
-        check(0, "Embaralhar os textos do jogo", s -> s.translations, (s, v) -> s.translations = v, null);
+        section(t("15 - Traduções", "15 - Translations"));
+        check(0, t("Embaralhar os textos do jogo", "Shuffle the game's texts"), s -> s.translations, (s, v) -> s.translations = v, null);
         Map<String, String> translationModes = new LinkedHashMap<>();
-        translationModes.put("entries", "Trocar textos inteiros (nomes continuam legíveis)");
-        translationModes.put("words", "Trocar palavras de lugar (caótico)");
-        translationModes.put("entriesall", "Usar frases de todas as traduções");
-        translationModes.put("words2", "Usar palavras de duas traduções");
-        translationModes.put("words3", "Usar palavras de três traduções");
-        translationModes.put("wordsall", "Usar palavras de todas as traduções");
-        dropdown(1, "Modo:", translationModes, s -> s.translationMode, (s, v) -> s.translationMode = v, () -> edit.translations);
+        translationModes.put("entries", t("Trocar textos inteiros (nomes continuam legíveis)", "Swap whole texts (names stay readable)"));
+        translationModes.put("words", t("Trocar palavras de lugar (caótico)", "Swap words around (chaotic)"));
+        translationModes.put("entriesall", t("Usar frases de todas as traduções", "Use phrases from every language"));
+        translationModes.put("words2", t("Usar palavras de duas traduções", "Use words from two languages"));
+        translationModes.put("words3", t("Usar palavras de três traduções", "Use words from three languages"));
+        translationModes.put("wordsall", t("Usar palavras de todas as traduções", "Use words from every language"));
+        dropdown(1, modeText, translationModes, s -> s.translationMode, (s, v) -> s.translationMode = v, () -> edit.translations);
 
-        section("16 - Sons");
-        check(0, "Trocar os sons dentro de cada categoria", s -> s.sounds, (s, v) -> s.sounds = v, null);
-        label(1, "Categorias:");
-        listChecks(2, SOUND_CATEGORIES, s -> s.soundCategories, (s, v) -> s.soundCategories = v, () -> edit.sounds);
+        section(t("16 - Sons", "16 - Sounds"));
+        check(0, t("Trocar os sons dentro de cada categoria", "Swap sounds within each category"), s -> s.sounds, (s, v) -> s.sounds = v, null);
+        label(1, t("Categorias:", "Categories:"));
+        listChecks(2, Lang.pairs(SOUND_CATEGORIES), s -> s.soundCategories, (s, v) -> s.soundCategories = v, () -> edit.sounds);
         flow.next(4);
-        check(0, "Rotação: a seed gera 3 opções de troca de som, que se alternam a cada 6 minutos de jogo (a música muda na hora da troca)",
-                PERFORMANCE_NOTE, s -> s.soundRotation, (s, v) -> s.soundRotation = v, () -> edit.sounds);
+        check(0, t("Rotação: a seed gera 3 opções de troca de som, que se alternam a cada 6 minutos de jogo (a música muda na hora da troca)",
+                "Rotation: the seed makes 3 sound swap options, which take turns every 6 minutes of play (the music changes when they switch)"),
+                performanceNote, s -> s.soundRotation, (s, v) -> s.soundRotation = v, () -> edit.sounds);
 
-        section("17 - Recompensas");
-        check(0, "Recompensas aleatórias: as quests dão itens aleatórios de recompensa", s -> s.questRewards, (s, v) -> s.questRewards = v, null);
-        check(1, "17.1 - Recompensas do Mestre Ancião", s -> s.questRewardsElder, (s, v) -> s.questRewardsElder = v, () -> edit.questRewards);
-        check(1, "17.2 - Recompensas dos desafios do diário de aventura", s -> s.questRewardsJournal,
+        section(t("17 - Recompensas", "17 - Rewards"));
+        check(0, t("Recompensas aleatórias: as quests dão itens aleatórios de recompensa", "Random rewards: quests give random items as rewards"),
+                s -> s.questRewards, (s, v) -> s.questRewards = v, null);
+        check(1, t("17.1 - Recompensas do Mestre Ancião", "17.1 - Elder rewards"), s -> s.questRewardsElder, (s, v) -> s.questRewardsElder = v,
+                () -> edit.questRewards);
+        check(1, t("17.2 - Recompensas dos desafios do diário de aventura", "17.2 - Adventure journal challenge rewards"), s -> s.questRewardsJournal,
                 (s, v) -> s.questRewardsJournal = v, () -> edit.questRewards);
 
-        section("18 - Pesca");
-        check(0, "Randomizar o poder de pesca das iscas", s -> s.fishingBaitPower, (s, v) -> s.fishingBaitPower = v, null);
-        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingBaitPowerMin, (s, v) -> s.fishingBaitPowerMin = v);
-        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingBaitPowerMax, (s, v) -> s.fishingBaitPowerMax = v);
-        check(0, "Randomizar o poder de pesca das varas", s -> s.fishingRodPower, (s, v) -> s.fishingRodPower = v, null);
-        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingRodPowerMin, (s, v) -> s.fishingRodPowerMin = v);
-        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingRodPowerMax, (s, v) -> s.fishingRodPowerMax = v);
-        check(0, "Randomizar a pescaria", s -> s.fishingCatches, (s, v) -> s.fishingCatches = v, null);
+        section(t("18 - Pesca", "18 - Fishing"));
+        check(0, t("Randomizar o poder de pesca das iscas", "Randomize the fishing power of baits"), s -> s.fishingBaitPower,
+                (s, v) -> s.fishingBaitPower = v, null);
+        slider(1, minMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingBaitPowerMin, (s, v) -> s.fishingBaitPowerMin = v);
+        slider(1, maxMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingBaitPowerMax, (s, v) -> s.fishingBaitPowerMax = v);
+        check(0, t("Randomizar o poder de pesca das varas", "Randomize the fishing power of rods"), s -> s.fishingRodPower,
+                (s, v) -> s.fishingRodPower = v, null);
+        slider(1, minMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingRodPowerMin, (s, v) -> s.fishingRodPowerMin = v);
+        slider(1, maxMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.fishingRodPowerMax, (s, v) -> s.fishingRodPowerMax = v);
+        check(0, t("Randomizar a pescaria", "Randomize catches"), s -> s.fishingCatches, (s, v) -> s.fishingCatches = v, null);
         Map<String, String> fishingModes = new LinkedHashMap<>();
-        fishingModes.put("fish", "Peixes (cada peixe vira outro peixe)");
-        fishingModes.put("all", "Todos os itens do jogo");
-        dropdown(1, "Modo:", fishingModes, s -> s.fishingCatchesMode, (s, v) -> s.fishingCatchesMode = v, () -> edit.fishingCatches);
+        fishingModes.put("fish", t("Peixes (cada peixe vira outro peixe)", "Fish (each fish becomes another fish)"));
+        fishingModes.put("all", t("Todos os itens do jogo", "Every item in the game"));
+        dropdown(1, modeText, fishingModes, s -> s.fishingCatchesMode, (s, v) -> s.fishingCatchesMode = v, () -> edit.fishingCatches);
 
-        section("Avançado");
-        check(0, "Gravar o arquivo de spoiler com todas as trocas", s -> s.spoilerLog, (s, v) -> s.spoilerLog = v, null);
-        text(0, "Mobs que nunca devem ser trocados (IDs separados por vírgula):", s -> s.excludeMobs, (s, v) -> s.excludeMobs = v);
-        text(0, "Itens que nunca devem ser trocados (IDs separados por vírgula):", s -> s.excludeItems, (s, v) -> s.excludeItems = v);
+        section(t("Avançado", "Advanced"));
+        check(0, t("Gravar o arquivo de spoiler com todas as trocas", "Write the spoiler file with every swap"), s -> s.spoilerLog,
+                (s, v) -> s.spoilerLog = v, null);
+        text(0, t("Mobs que nunca devem ser trocados (IDs separados por vírgula):", "Mobs that must never be swapped (comma-separated IDs):"),
+                s -> s.excludeMobs, (s, v) -> s.excludeMobs = v);
+        text(0, t("Itens que nunca devem ser trocados (IDs separados por vírgula):", "Items that must never be swapped (comma-separated IDs):"),
+                s -> s.excludeItems, (s, v) -> s.excludeItems = v);
 
         if (visible) visibleEnd = flow.next();
         content.setContentBox(new java.awt.Rectangle(content.getWidth(), visibleEnd + 10));
@@ -415,16 +468,21 @@ public class SRSConfigForm extends Form {
         refresh();
     }
 
-    /** Groups of a per-mob stat: settings field prefix, plural and singular name. */
-    private static final String[][] STAT_GROUPS = {{"enemy", "inimigos", "inimigo"}, {"villager", "aldeões", "aldeão"},
-            {"critter", "bichos", "bicho"}, {"animal", "animais", "animal"}, {"boss", "chefes", "chefe"}};
+    /** Groups of a per-mob stat: settings field prefix, Portuguese plural and singular name, English name. */
+    private static final String[][] STAT_GROUPS = {{"enemy", "inimigos", "inimigo", "enemy"}, {"villager", "aldeões", "aldeão", "villager"},
+            {"critter", "bichos", "bicho", "critter"}, {"animal", "animais", "animal", "animal"}, {"boss", "chefes", "chefe", "boss"}};
 
-    /** The 5 options (enemies, villagers, critters, animals, bosses) of a stat whose fields are named like enemyArmor. */
-    private void statBlocks(String number, String title, String key, String what) {
+    /**
+     * The 5 options (enemies, villagers, critters, animals, bosses) of a stat whose fields are named like enemyArmor.
+     * {@code title} and {@code what} are Portuguese ("Defesa", "a defesa"), {@code english} is the stat's English name ("defense").
+     */
+    private void statBlocks(String number, String title, String key, String what, String english) {
         for (int i = 0; i < STAT_GROUPS.length; i++) {
             String f = STAT_GROUPS[i][0] + key;
-            healthBlock(number + "." + (i + 1) + " - " + title + " dos " + STAT_GROUPS[i][1],
-                    "Usar " + what + " do " + STAT_GROUPS[i][2] + " antes da troca",
+            String name = STAT_GROUPS[i][3];
+            healthBlock(number + "." + (i + 1) + " - " + t(title + " dos " + STAT_GROUPS[i][1],
+                            Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + english),
+                    t("Usar " + what + " do " + STAT_GROUPS[i][2] + " antes da troca", "Use the pre-swap " + name + "'s " + english),
                     s -> (Boolean) fieldValue(s, f), (s, v) -> setFieldValue(s, f, v),
                     s -> (String) fieldValue(s, f + "Mode"), (s, v) -> setFieldValue(s, f + "Mode", v),
                     s -> (Float) fieldValue(s, f + "Min"), (s, v) -> setFieldValue(s, f + "Min", v),
@@ -456,11 +514,11 @@ public class SRSConfigForm extends Form {
         flow.next(4);
         check(0, title, enabledGet, enabledSet, null);
         Map<String, String> modes = new LinkedHashMap<>();
-        modes.put("multiplier", "Multiplicador aleatório");
+        modes.put("multiplier", randomMultiplierText);
         modes.put("preswap", preswapLabel);
-        dropdown(1, "Modo:", modes, modeGet, modeSet, () -> enabledGet.test(edit));
-        slider(1, "Multiplicador mínimo", 0.1F, 5.0F, 0.1F, MULTIPLIER, minGet, minSet);
-        slider(1, "Multiplicador máximo", 0.1F, 5.0F, 0.1F, MULTIPLIER, maxGet, maxSet);
+        dropdown(1, modeText, modes, modeGet, modeSet, () -> enabledGet.test(edit));
+        slider(1, minMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, minGet, minSet);
+        slider(1, maxMultiplierText, 0.1F, 5.0F, 0.1F, MULTIPLIER, maxGet, maxSet);
     }
 
     private int x(int indent) {
@@ -606,8 +664,14 @@ public class SRSConfigForm extends Form {
 
     private static String format(float value, int format) {
         if (format == PERCENT) return Math.round(value * 100) + "%";
-        if (format == PERCENT_DECIMAL) return String.format(java.util.Locale.ROOT, "%.1f", value * 100).replace('.', ',') + "%";
-        return "x" + String.format(java.util.Locale.ROOT, "%.1f", value).replace('.', ',');
+        // Decimal comma in Portuguese, decimal point in English
+        char decimal = Lang.portuguese() ? ',' : '.';
+        if (format == PERCENT_DECIMAL) return String.format(java.util.Locale.ROOT, "%.1f", value * 100).replace('.', decimal) + "%";
+        return "x" + String.format(java.util.Locale.ROOT, "%.1f", value).replace('.', decimal);
+    }
+
+    private static String t(String portuguese, String english) {
+        return Lang.t(portuguese, english);
     }
 
     private static float round(float value) {
@@ -644,9 +708,10 @@ public class SRSConfigForm extends Form {
         SRS.stored().applyScript(edit.toScript());
         boolean saved = SRS.saveConfig();
         if (saved) {
-            setStatus(needsRestart() ? "Configuração salva! Reinicie o jogo para aplicar." : "Configuração salva. Nada mudou em relação ao que está em uso.", true);
+            setStatus(needsRestart() ? t("Configuração salva! Reinicie o jogo para aplicar.", "Settings saved! Restart the game to apply them.")
+                    : t("Configuração salva. Nada mudou em relação ao que está em uso.", "Settings saved. Nothing changed from what is in use."), true);
         } else {
-            setStatus("Não foi possível salvar o arquivo de configuração.", false);
+            setStatus(t("Não foi possível salvar o arquivo de configuração.", "Could not save the settings file."), false);
         }
         return saved;
     }
@@ -657,7 +722,8 @@ public class SRSConfigForm extends Form {
         edit = new SRSSettings();
         edit.seed = seed;
         buildContent();
-        setStatus("Valores padrão carregados (a seed foi mantida). Clique em Salvar para gravar.", false);
+        setStatus(t("Valores padrão carregados (a seed foi mantida). Clique em Salvar para gravar.",
+                "Default values loaded (the seed was kept). Click Save to keep them."), false);
     }
 
     private void restart() {
@@ -671,11 +737,12 @@ public class SRSConfigForm extends Form {
     }
 
     private void askRandomSeed() {
-        confirm("Sortear uma nova seed? Toda a randomização muda (depois de salvar e reiniciar o jogo).", "Sim", "Não", () -> {
+        confirm(t("Sortear uma nova seed? Toda a randomização muda (depois de salvar e reiniciar o jogo).",
+                "Roll a new seed? All of the randomization changes (after saving and restarting the game)."), t("Sim", "Yes"), t("Não", "No"), () -> {
             long seed = 0;
             while (seed == 0) seed = new Random().nextLong();
             seedInput.setText(String.valueOf(seed));
-            setStatus("Nova seed sorteada. Clique em Salvar para gravar.", false);
+            setStatus(t("Nova seed sorteada. Clique em Salvar para gravar.", "New seed rolled. Click Save to keep it."), false);
             modsForm.makeCurrent(screen);
         }, () -> modsForm.makeCurrent(screen));
     }
@@ -685,7 +752,8 @@ public class SRSConfigForm extends Form {
             close();
             return;
         }
-        confirm("Você tem alterações não salvas no Super Randomizer Show.", "Salvar", "Descartar", () -> {
+        confirm(t("Você tem alterações não salvas no Super Randomizer Show.", "You have unsaved changes in Super Randomizer Show."),
+                t("Salvar", "Save"), t("Descartar", "Discard"), () -> {
             save();
             close();
         }, this::close);
