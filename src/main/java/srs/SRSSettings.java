@@ -42,9 +42,14 @@ public class SRSSettings extends ModSettings {
     // 3 - Recipes
     public boolean recipes = false;
     public boolean recipesSameStation = false;
+    public float recipesShuffleLevel = 1.0F;
 
     // 4 - Shops
     public boolean shops = true;
+    public String shopsMode = "items";
+    public boolean shopPrices = false;
+    public float shopPricesMin = 0.5F;
+    public float shopPricesMax = 1.5F;
 
     // 5 - Damage (5.1 weapons, 5.2 enemies, 5.3 bosses)
     public boolean weaponDamage = true;
@@ -136,22 +141,31 @@ public class SRSSettings extends ModSettings {
 
     // 10 - Armor set bonuses
     public boolean armorSetBonuses = true;
+    public String armorSetBonusMode = "swap";
 
     // 11 - Equipment effects
     public boolean equipmentEffects = true;
+    public String equipmentEffectsMode = "all";
 
-    // 12 - Equipment damage %
+    // 12 - Equipment damage % and enchantment scrolls
     public boolean equipmentDamage = true;
     public float equipmentDamageMultMin = 0.0F;
     public float equipmentDamageMultMax = 2.5F;
+    public boolean enchantScrolls = false;
+    public float enchantScrollsMin = 0.5F;
+    public float enchantScrollsMax = 2.0F;
 
     // 13 - Visuals
     public boolean visuals = true;
     public String visualFolders = DEFAULT_VISUAL_FOLDERS;
     public boolean funnyBuggedSwap = true;
+    public boolean visualRotation = false;
 
     // 14 - Projectiles
     public boolean projectiles = true;
+    public boolean projectileSpeed = false;
+    public float projectileSpeedMin = 1.0F;
+    public float projectileSpeedMax = 1.0F;
 
     // 15 - Translations
     public boolean translations = false;
@@ -193,8 +207,8 @@ public class SRSSettings extends ModSettings {
         data.addSafeString("bossPool", bossPool, "1.2 - Chefes que podem trocar entre si, tambem nos drops (IDs separados por virgula; vazio = nao trocar chefes)");
         data.addSafeString("townNPCPool", townNPCPool, "1.1 - NPCs que podem trocar de lugar entre si (IDs separados por virgula)");
 
-        data.addBoolean("drops", drops, "2 - Troca a tabela de drops entre inimigos, chefes, bichos, rochas, arvores e plantas");
-        data.addBoolean("dropQuantities", dropQuantities, "2 - Multiplica a quantidade de cada item dropado por um fator fixo da seed");
+        data.addBoolean("drops", drops, "2 - Troca a tabela de drops entre inimigos, chefes, bichos, rochas, arvores, plantas, flores e paredes");
+        data.addBoolean("dropQuantities", dropQuantities, "2 - Multiplica a quantidade de cada item dropado por um fator fixo da seed (nunca zera um drop)");
         data.addFloat("dropQuantityMin", dropQuantityMin, "Multiplicador minimo de quantidade");
         data.addFloat("dropQuantityMax", dropQuantityMax, "Multiplicador maximo de quantidade");
         data.addBoolean("randomItemDrop", randomItemDrop, "2 - Ao matar um mob, chance de dropar tambem um item aleatorio de todo o jogo");
@@ -202,8 +216,13 @@ public class SRSSettings extends ModSettings {
 
         data.addBoolean("recipes", recipes, "3 - Embaralha os ingredientes das receitas");
         data.addBoolean("recipesSameStation", recipesSameStation, "true = so troca entre receitas da mesma estacao de trabalho (mais jogavel)");
+        data.addFloat("recipesShuffleLevel", recipesShuffleLevel, "Nivel de embaralhamento: parte das receitas que trocam de ingredientes (0.01 = 1%, 1.0 = 100%)");
 
-        data.addBoolean("shops", shops, "4 - Embaralha os itens vendidos e comprados pelos NPCs de cidade");
+        data.addBoolean("shops", shops, "4 - Embaralha as lojas dos NPCs de cidade");
+        data.addSafeString("shopsMode", shopsMode, "items = troca cada item vendido/comprado por outro | npcs = so troca as lojas inteiras entre os NPCs (aldeoes)");
+        data.addBoolean("shopPrices", shopPrices, "4 - Randomiza os precos de compra e venda das lojas (fator fixo por item)");
+        data.addFloat("shopPricesMin", shopPricesMin, "Multiplicador minimo dos precos");
+        data.addFloat("shopPricesMax", shopPricesMax, "Multiplicador maximo dos precos");
 
         data.addBoolean("weaponDamage", weaponDamage, "5.1 - Randomiza o dano das armas");
         data.addSafeString("weaponDamageMode", weaponDamageMode, "multiplier = multiplica por um fator aleatorio | shuffle = troca o dano entre armas de forca parecida | chaos = troca com qualquer arma do mesmo tipo");
@@ -235,19 +254,29 @@ public class SRSSettings extends ModSettings {
         data.addFloat("equipmentCritBonusMax", equipmentCritBonusMax, "Critico extra maximo sorteado para cada armadura/acessorio");
 
         data.addBoolean("armorSetBonuses", armorSetBonuses, "10 - Troca os bonus de conjunto entre as armaduras");
+        data.addSafeString("armorSetBonusMode", armorSetBonusMode, "swap = cada conjunto ganha o bonus de outro | double = bonus duplo: cada conjunto mantem o seu e ganha tambem o de outro");
         data.addBoolean("equipmentEffects", equipmentEffects, "11 - Troca os efeitos entre acessorios e entre pecas de armadura");
+        data.addSafeString("equipmentEffectsMode", equipmentEffectsMode, "all = troca com qualquer um | class = so entre itens da mesma classe (corpo a corpo, distancia, magia, invocacao, geral) | progression = so entre itens achados na mesma fase do jogo");
         data.addBoolean("equipmentDamage", equipmentDamage, "12 - Randomiza o % de aumento de dano dos equipamentos");
         data.addFloat("equipmentDamageMultMin", equipmentDamageMultMin, "Multiplicador minimo do bonus de dano");
         data.addFloat("equipmentDamageMultMax", equipmentDamageMultMax, "Multiplicador maximo do bonus de dano");
+        data.addBoolean("enchantScrolls", enchantScrolls, "12 - Randomiza os pergaminhos: multiplica os valores de cada encantamento por um fator fixo da seed");
+        data.addFloat("enchantScrollsMin", enchantScrollsMin, "Multiplicador minimo dos encantamentos");
+        data.addFloat("enchantScrollsMax", enchantScrollsMax, "Multiplicador maximo dos encantamentos");
 
         data.addBoolean("visuals", visuals, "13 - Troca texturas entre itens, armaduras, armas, mobs, NPCs, cosmeticos (so entre imagens do mesmo tamanho)");
         data.addSafeString("visualFolders", visualFolders, "Pastas de textura que participam (separadas por virgula)");
         data.addBoolean("funnyBuggedSwap", funnyBuggedSwap, "13b - Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com bracos de zumbi). Funciona mesmo com visuals desligado");
+        data.addBoolean("visualRotation", visualRotation, "13c - A seed gera 3 opcoes de troca de visual, que se alternam a cada 6 minutos de jogo");
 
         data.addBoolean("projectiles", projectiles, "14 - Troca os projeteis de armas, inimigos e chefes");
+        data.addBoolean("projectileSpeed", projectileSpeed, "14 - Randomiza a velocidade dos projeteis (fator fixo por tipo de projetil)");
+        data.addFloat("projectileSpeedMin", projectileSpeedMin, "Multiplicador minimo da velocidade");
+        data.addFloat("projectileSpeedMax", projectileSpeedMax, "Multiplicador maximo da velocidade");
 
         data.addBoolean("translations", translations, "15 - Embaralha as traducoes");
-        data.addSafeString("translationMode", translationMode, "entries = troca textos inteiros dentro da mesma categoria | words = troca palavras de lugar");
+        data.addSafeString("translationMode", translationMode, "entries = troca textos inteiros dentro da mesma categoria | words = troca palavras de lugar"
+                + " | entriesall = textos inteiros de todas as traducoes | words2, words3 = palavras de 2 ou 3 traducoes | wordsall = palavras de todas as traducoes");
 
         data.addBoolean("sounds", sounds, "16 - Troca sons dentro da mesma categoria");
         data.addSafeString("soundCategories", soundCategories, "Categorias: music,animals,creatures,environment,weather,weapons,impacts,interface,bosses,notes,other");
@@ -291,8 +320,13 @@ public class SRSSettings extends ModSettings {
 
         recipes = data.getBoolean("recipes", recipes, false);
         recipesSameStation = data.getBoolean("recipesSameStation", recipesSameStation, false);
+        recipesShuffleLevel = data.getFloat("recipesShuffleLevel", recipesShuffleLevel, false);
 
         shops = data.getBoolean("shops", shops, false);
+        shopsMode = data.getSafeString("shopsMode", shopsMode, false);
+        shopPrices = data.getBoolean("shopPrices", shopPrices, false);
+        shopPricesMin = data.getFloat("shopPricesMin", shopPricesMin, false);
+        shopPricesMax = data.getFloat("shopPricesMax", shopPricesMax, false);
 
         weaponDamage = data.getBoolean("weaponDamage", weaponDamage, false);
         weaponDamageMode = data.getSafeString("weaponDamageMode", weaponDamageMode, false);
@@ -339,16 +373,25 @@ public class SRSSettings extends ModSettings {
         equipmentCritBonusMax = data.getFloat("equipmentCritBonusMax", equipmentCritBonusMax, false);
 
         armorSetBonuses = data.getBoolean("armorSetBonuses", armorSetBonuses, false);
+        armorSetBonusMode = data.getSafeString("armorSetBonusMode", armorSetBonusMode, false);
         equipmentEffects = data.getBoolean("equipmentEffects", equipmentEffects, false);
+        equipmentEffectsMode = data.getSafeString("equipmentEffectsMode", equipmentEffectsMode, false);
         equipmentDamage = data.getBoolean("equipmentDamage", equipmentDamage, false);
         equipmentDamageMultMin = data.getFloat("equipmentDamageMultMin", equipmentDamageMultMin, false);
         equipmentDamageMultMax = data.getFloat("equipmentDamageMultMax", equipmentDamageMultMax, false);
+        enchantScrolls = data.getBoolean("enchantScrolls", enchantScrolls, false);
+        enchantScrollsMin = data.getFloat("enchantScrollsMin", enchantScrollsMin, false);
+        enchantScrollsMax = data.getFloat("enchantScrollsMax", enchantScrollsMax, false);
 
         visuals = data.getBoolean("visuals", visuals, false);
         visualFolders = data.getSafeString("visualFolders", visualFolders, false);
         funnyBuggedSwap = data.getBoolean("funnyBuggedSwap", funnyBuggedSwap, false);
+        visualRotation = data.getBoolean("visualRotation", visualRotation, false);
 
         projectiles = data.getBoolean("projectiles", projectiles, false);
+        projectileSpeed = data.getBoolean("projectileSpeed", projectileSpeed, false);
+        projectileSpeedMin = data.getFloat("projectileSpeedMin", projectileSpeedMin, false);
+        projectileSpeedMax = data.getFloat("projectileSpeedMax", projectileSpeedMax, false);
 
         translations = data.getBoolean("translations", translations, false);
         translationMode = data.getSafeString("translationMode", translationMode, false);

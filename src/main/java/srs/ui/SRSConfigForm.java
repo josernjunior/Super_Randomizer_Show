@@ -211,8 +211,9 @@ public class SRSConfigForm extends Form {
         listChecks(2, numbered(MobChoices.bosses(edit.bossPool)), s -> s.bossPool, (s, v) -> s.bossPool = v, () -> edit.mobSpawns || edit.drops);
 
         section("2 - Drops");
-        check(0, "Trocar quem dropa o quê (inimigos, chefes, bichos, rochas, árvores e plantas)", s -> s.drops, (s, v) -> s.drops = v, null);
-        check(0, "Randomizar a quantidade de cada item dropado", s -> s.dropQuantities, (s, v) -> s.dropQuantities = v, null);
+        check(0, "Trocar quem dropa o quê (inimigos, chefes, bichos, rochas, árvores, plantas, flores e paredes)", s -> s.drops, (s, v) -> s.drops = v, null);
+        label(1, "Quem dropa algo só troca com quem também dropa. Objetos colocados por você devolvem o próprio item.");
+        check(0, "Randomizar a quantidade de cada item dropado (nunca zera um drop)", s -> s.dropQuantities, (s, v) -> s.dropQuantities = v, null);
         slider(1, "Quantidade mínima", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.dropQuantityMin, (s, v) -> s.dropQuantityMin = v);
         slider(1, "Quantidade máxima", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.dropQuantityMax, (s, v) -> s.dropQuantityMax = v);
         check(0, "Chance de dropar também um item aleatório ao matar um mob", s -> s.randomItemDrop, (s, v) -> s.randomItemDrop = v, null);
@@ -222,9 +223,19 @@ public class SRSConfigForm extends Form {
         check(0, "Embaralhar os ingredientes das receitas", s -> s.recipes, (s, v) -> s.recipes = v, null);
         check(1, "Só trocar entre receitas da mesma estação de trabalho (mais jogável)", s -> s.recipesSameStation,
                 (s, v) -> s.recipesSameStation = v, () -> edit.recipes);
+        slider(1, "Nível de embaralhamento (parte das receitas que trocam de ingredientes)", 0.01F, 1.0F, 0.01F, PERCENT,
+                s -> s.recipesShuffleLevel, (s, v) -> s.recipesShuffleLevel = v);
 
         section("4 - Lojas");
-        check(0, "Embaralhar os itens que os NPCs de cidade vendem e compram", s -> s.shops, (s, v) -> s.shops = v, null);
+        check(0, "Embaralhar as lojas dos NPCs de cidade", s -> s.shops, (s, v) -> s.shops = v, null);
+        Map<String, String> shopModes = new LinkedHashMap<>();
+        shopModes.put("items", "Trocar cada item vendido e comprado");
+        shopModes.put("npcs", "Só trocar as lojas inteiras entre os aldeões");
+        dropdown(1, "Modo:", shopModes, s -> s.shopsMode, (s, v) -> s.shopsMode = v, () -> edit.shops);
+        flow.next(4);
+        check(0, "Randomizar os preços de compra e venda", s -> s.shopPrices, (s, v) -> s.shopPrices = v, null);
+        slider(1, "Multiplicador mínimo dos preços", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.shopPricesMin, (s, v) -> s.shopPricesMin = v);
+        slider(1, "Multiplicador máximo dos preços", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.shopPricesMax, (s, v) -> s.shopPricesMax = v);
 
         section("5 - Danos");
         check(0, "5.1 - Armas", s -> s.weaponDamage, (s, v) -> s.weaponDamage = v, null);
@@ -293,15 +304,31 @@ public class SRSConfigForm extends Form {
         slider(1, "Crítico extra máximo por armadura/acessório", 0.0F, 0.5F, 0.01F, PERCENT, s -> s.equipmentCritBonusMax, (s, v) -> s.equipmentCritBonusMax = v);
 
         section("10 - Bônus de conjunto");
-        check(0, "Trocar os bônus de conjunto entre as armaduras", s -> s.armorSetBonuses, (s, v) -> s.armorSetBonuses = v, null);
+        check(0, "Randomizar os bônus de conjunto das armaduras", s -> s.armorSetBonuses, (s, v) -> s.armorSetBonuses = v, null);
+        Map<String, String> setModes = new LinkedHashMap<>();
+        setModes.put("swap", "Trocar os bônus entre os conjuntos");
+        setModes.put("double", "Bônus duplo: o próprio + o de outro conjunto");
+        dropdown(1, "Modo:", setModes, s -> s.armorSetBonusMode, (s, v) -> s.armorSetBonusMode = v, () -> edit.armorSetBonuses);
 
         section("11 - Efeitos de equipamentos");
         check(0, "Trocar os efeitos entre acessórios e entre peças de armadura do mesmo slot", s -> s.equipmentEffects, (s, v) -> s.equipmentEffects = v, null);
+        Map<String, String> effectModes = new LinkedHashMap<>();
+        effectModes.put("all", "Trocar com qualquer um");
+        effectModes.put("class", "Só entre itens da mesma classe");
+        effectModes.put("progression", "Só entre itens da mesma progressão");
+        dropdown(1, "Modo:", effectModes, s -> s.equipmentEffectsMode, (s, v) -> s.equipmentEffectsMode = v, () -> edit.equipmentEffects);
+        label(1, "Classes: corpo a corpo, distância, magia, invocação e geral (lidas dos efeitos do acessório e do capacete do conjunto). "
+                + "Progressão: itens ordenados por raridade e valor (armaduras pela defesa) só trocam com os vizinhos nessa ordem.");
 
-        section("12 - % de dano dos equipamentos");
+        section("12 - Dano dos equipamentos e pergaminhos");
         check(0, "Randomizar o bônus de dano dos equipamentos", s -> s.equipmentDamage, (s, v) -> s.equipmentDamage = v, null);
         slider(1, "Multiplicador mínimo", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentDamageMultMin, (s, v) -> s.equipmentDamageMultMin = v);
         slider(1, "Multiplicador máximo", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.equipmentDamageMultMax, (s, v) -> s.equipmentDamageMultMax = v);
+        flow.next(4);
+        check(0, "Randomizar os pergaminhos: os valores de cada encantamento são multiplicados por um fator fixo", s -> s.enchantScrolls,
+                (s, v) -> s.enchantScrolls = v, null);
+        slider(1, "Multiplicador mínimo dos encantamentos", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.enchantScrollsMin, (s, v) -> s.enchantScrollsMin = v);
+        slider(1, "Multiplicador máximo dos encantamentos", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.enchantScrollsMax, (s, v) -> s.enchantScrollsMax = v);
 
         section("13 - Visuais");
         check(0, "Trocar as texturas (um mob vira outro mob inteiro, um capacete vira outro capacete...)", s -> s.visuals, (s, v) -> s.visuals = v, null);
@@ -310,15 +337,26 @@ public class SRSConfigForm extends Form {
         flow.next(4);
         check(0, "Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com braços de zumbi). Funciona mesmo com os visuais desligados.",
                 s -> s.funnyBuggedSwap, (s, v) -> s.funnyBuggedSwap = v, null);
+        flow.next(4);
+        check(0, "Rotação: a seed gera 3 opções de troca de visual, que se alternam a cada 6 minutos de jogo", s -> s.visualRotation,
+                (s, v) -> s.visualRotation = v, () -> edit.visuals || edit.funnyBuggedSwap);
 
         section("14 - Projéteis");
         check(0, "Trocar os projéteis de armas, inimigos e chefes", s -> s.projectiles, (s, v) -> s.projectiles = v, null);
+        flow.next(4);
+        check(0, "Randomizar a velocidade dos projéteis (fator fixo por tipo)", s -> s.projectileSpeed, (s, v) -> s.projectileSpeed = v, null);
+        slider(1, "Velocidade mínima", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.projectileSpeedMin, (s, v) -> s.projectileSpeedMin = v);
+        slider(1, "Velocidade máxima", 0.1F, 5.0F, 0.1F, MULTIPLIER, s -> s.projectileSpeedMax, (s, v) -> s.projectileSpeedMax = v);
 
         section("15 - Traduções");
         check(0, "Embaralhar os textos do jogo", s -> s.translations, (s, v) -> s.translations = v, null);
         Map<String, String> translationModes = new LinkedHashMap<>();
         translationModes.put("entries", "Trocar textos inteiros (nomes continuam legíveis)");
         translationModes.put("words", "Trocar palavras de lugar (caótico)");
+        translationModes.put("entriesall", "Usar frases de todas as traduções");
+        translationModes.put("words2", "Usar palavras de duas traduções");
+        translationModes.put("words3", "Usar palavras de três traduções");
+        translationModes.put("wordsall", "Usar palavras de todas as traduções");
         dropdown(1, "Modo:", translationModes, s -> s.translationMode, (s, v) -> s.translationMode = v, () -> edit.translations);
 
         section("16 - Sons");

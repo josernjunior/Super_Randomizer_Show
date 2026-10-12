@@ -18,7 +18,7 @@ import srs.core.Spoiler;
 /**
  * Feature 3: shuffles ingredient lists between recipes. The result, amount and crafting station of every recipe
  * stay the same, only what it costs changes. By default ingredients only move between recipes of the same station,
- * which keeps progression roughly intact.
+ * which keeps progression roughly intact. The shuffle level (1% to 100%) is the share of recipes that take part.
  */
 public final class RecipeRandomizer {
 
@@ -51,11 +51,13 @@ public final class RecipeRandomizer {
                 groups.computeIfAbsent(group, k -> new ArrayList<>()).add(new Keyed(base + "#" + index, r));
             }
 
+            float level = Math.max(0.01F, Math.min(1.0F, SRS.settings().recipesShuffleLevel));
             List<String> lines = Spoiler.section("3 - Receitas (resultado @ estacao: novos ingredientes)");
+            lines.add("Nivel de embaralhamento: " + Math.round(level * 100) + "% das receitas trocam de ingredientes.");
             List<String> groupNames = new ArrayList<>(groups.keySet());
             Collections.sort(groupNames);
             for (String group : groupNames) {
-                List<Keyed> recipes = groups.get(group);
+                List<Keyed> recipes = choose(groups.get(group), group, level);
                 Collections.sort(recipes, (a, b) -> a.key.compareTo(b.key));
                 List<Ingredient[]> pool = new ArrayList<>();
                 for (Keyed k : recipes) pool.add(k.recipe.ingredients);
@@ -72,6 +74,15 @@ public final class RecipeRandomizer {
             SRS.warn("Recipe randomization failed: " + e);
             e.printStackTrace();
         }
+    }
+
+    /** The share of a group's recipes (by shuffle level) that trade ingredients; the rest keep their own. */
+    private static List<Keyed> choose(List<Keyed> recipes, String group, float level) {
+        List<Keyed> out = new ArrayList<>(recipes);
+        if (level >= 1.0F) return out;
+        Collections.sort(out, (a, b) -> a.key.compareTo(b.key));
+        Collections.shuffle(out, SeedRandom.rng("recipes:level:" + group));
+        return new ArrayList<>(out.subList(0, Math.round(out.size() * level)));
     }
 
     /** Makes sure no recipe ends up needing its own result as an ingredient. */

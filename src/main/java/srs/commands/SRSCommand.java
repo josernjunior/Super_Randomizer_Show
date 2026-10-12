@@ -150,7 +150,8 @@ public class SRSCommand extends ModularChatCommand {
             default: {
                 log.add("Super Randomizer Show - seed " + s.seed);
                 log.add(" 1 Mobs: " + onOff(s.mobSpawns) + " | 2 Drops: " + onOff(s.drops) + " (qtd " + onOff(s.dropQuantities) + ")"
-                        + " | 3 Receitas: " + onOff(s.recipes) + " | 4 Lojas: " + onOff(s.shops));
+                        + " | 3 Receitas: " + onOff(s.recipes) + " (" + Math.round(s.recipesShuffleLevel * 100) + "%)"
+                        + " | 4 Lojas: " + onOff(s.shops) + " (" + s.shopsMode + "), precos " + onOff(s.shopPrices));
                 log.add(" 5 Danos: armas " + onOff(s.weaponDamage) + ", inimigos " + onOff(s.enemyDamage) + ", chefes " + onOff(s.bossDamage)
                         + " | 6 Vida: inimigos " + onOff(s.enemyHealth) + ", aldeoes " + onOff(s.villagerHealth) + ", bichos " + onOff(s.critterHealth)
                         + ", animais " + onOff(s.animalHealth) + ", chefes " + onOff(s.bossHealth));
@@ -158,10 +159,12 @@ public class SRSCommand extends ModularChatCommand {
                         + ", animais " + onOff(s.animalArmor) + ", chefes " + onOff(s.bossArmor)
                         + " | 8 Empurrao: inimigos " + onOff(s.enemyKnockback) + ", aldeoes " + onOff(s.villagerKnockback) + ", bichos " + onOff(s.critterKnockback)
                         + ", animais " + onOff(s.animalKnockback) + ", chefes " + onOff(s.bossKnockback));
-                log.add(" 9 Critico: " + onOff(s.critChance) + " | 10 Bonus conjunto: " + onOff(s.armorSetBonuses) + " | 11 Efeitos: " + onOff(s.equipmentEffects)
-                        + " | 12 % dano equip.: " + onOff(s.equipmentDamage));
-                log.add(" 13 Visuais: " + onOff(s.visuals) + " (Troca Bugada Divertida: " + onOff(s.funnyBuggedSwap) + ")"
-                        + " | 14 Projeteis: " + onOff(s.projectiles) + " | 15 Traducoes: " + onOff(s.translations) + " | 16 Sons: " + onOff(s.sounds));
+                log.add(" 9 Critico: " + onOff(s.critChance) + " | 10 Bonus conjunto: " + onOff(s.armorSetBonuses) + " (" + s.armorSetBonusMode + ")"
+                        + " | 11 Efeitos: " + onOff(s.equipmentEffects) + " (" + s.equipmentEffectsMode + ")"
+                        + " | 12 % dano equip.: " + onOff(s.equipmentDamage) + ", pergaminhos " + onOff(s.enchantScrolls));
+                log.add(" 13 Visuais: " + onOff(s.visuals) + " (Troca Bugada Divertida: " + onOff(s.funnyBuggedSwap) + ", rotacao: " + onOff(s.visualRotation) + ")"
+                        + " | 14 Projeteis: " + onOff(s.projectiles) + " (velocidade " + onOff(s.projectileSpeed) + ")"
+                        + " | 15 Traducoes: " + onOff(s.translations) + " (" + s.translationMode + ") | 16 Sons: " + onOff(s.sounds));
                 log.add(" 17 Recompensas: " + onOff(s.questRewards) + " (Mestre Anciao " + onOff(s.questRewardsElder)
                         + ", diario de aventura " + onOff(s.questRewardsJournal) + ")"
                         + " | 18 Pesca: iscas " + onOff(s.fishingBaitPower) + ", varas " + onOff(s.fishingRodPower)

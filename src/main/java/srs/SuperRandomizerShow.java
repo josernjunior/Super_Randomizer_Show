@@ -15,6 +15,7 @@ import srs.core.SRS;
 import srs.core.Spoiler;
 import srs.network.PacketSRSConfig;
 import srs.random.DropRandomizer;
+import srs.random.EnchantmentRandomizer;
 import srs.random.EquipmentRandomizer;
 import srs.random.FishingRandomizer;
 import srs.random.MobDamageRandomizer;
@@ -38,7 +39,7 @@ import srs.random.WeaponRandomizer;
  * <li>preInit: makes sure there is a seed, shuffles translations (languages are already loaded)</li>
  * <li>init: registers the sync packet, the /srs command and, on clients, builds texture/sound swaps
  * (textures and sounds load between init and initResources)</li>
- * <li>postInit: all registries are closed, so mobs, drops, shops, weapons, equipment, projectiles, quest rewards and fishing are built</li>
+ * <li>postInit: all registries are closed, so mobs, drops, shops, weapons, equipment, enchantments, projectiles, quest rewards and fishing are built</li>
  * <li>recipes are built by the game right after postInit (see RecipesGetDefaultRecipesPatch), then the spoiler is written</li>
  * </ol>
  */
@@ -95,6 +96,7 @@ public class SuperRandomizerShow {
         ShopRandomizer.build();
         WeaponRandomizer.build();
         EquipmentRandomizer.build();
+        EnchantmentRandomizer.build();
         ProjectileRandomizer.build();
         QuestRewardRandomizer.build();
         FishingRandomizer.build();

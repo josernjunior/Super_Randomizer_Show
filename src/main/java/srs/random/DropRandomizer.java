@@ -4,7 +4,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import necesse.engine.GameEventListener;
@@ -21,9 +20,11 @@ import necesse.entity.mobs.Mob;
 import necesse.inventory.InventoryItem;
 import necesse.inventory.item.Item;
 import necesse.inventory.lootTable.LootTable;
+import necesse.level.gameObject.FlowerPatchObject;
 import necesse.level.gameObject.GameObject;
 import necesse.level.gameObject.SingleRockObject;
 import necesse.level.gameObject.SingleRockSmall;
+import necesse.level.gameObject.WallObject;
 import necesse.level.maps.Level;
 import srs.SRSSettings;
 import srs.core.MobPools;
@@ -35,7 +36,8 @@ import srs.core.Spoiler;
 
 /**
  * Feature 2: who drops what (mob/boss/critter loot tables are swapped inside their group, and so are the drops of
- * rocks, trees and plants) and how much (every dropped item gets a fixed amount multiplier from the seed).
+ * rocks, trees, plants, flowers and walls) and how much (every dropped item gets a fixed amount multiplier from the seed).
+ * Objects a player placed that give themselves back are left alone.
  */
 public final class DropRandomizer {
 
@@ -58,11 +60,18 @@ public final class DropRandomizer {
         if (s.drops) {
             List<String> lines = Spoiler.section("2 - Drops: tabela de loot (quem morre -> dropa como)");
             for (Pool pool : new Pool[]{Pool.HOSTILE, Pool.BOSS, Pool.CRITTER, Pool.ANIMAL}) {
-                Map<String, String> perm = SeedRandom.permutation("drops:mob:" + pool.name(), MobPools.get(pool));
+                // Mobs that drop something only swap among themselves, so a croppler never drops like a butterfly (nothing)
+                List<String> withLoot = new ArrayList<>();
+                List<String> withoutLoot = new ArrayList<>();
+                for (String id : MobPools.get(pool)) (hasLoot(id) ? withLoot : withoutLoot).add(id);
+                Map<String, String> perm = SeedRandom.permutation("drops:mob:" + pool.name(), withLoot);
+                perm.putAll(SeedRandom.permutation("drops:mob:" + pool.name() + ":noloot", withoutLoot));
                 mobMapping.putAll(perm);
                 List<String> keys = new ArrayList<>(perm.keySet());
                 Collections.sort(keys);
-                for (String k : keys) lines.add("[" + pool.name().toLowerCase() + "] " + k + " -> " + perm.get(k));
+                for (String k : keys) {
+                    lines.add("[" + pool.name().toLowerCase() + "] " + k + " -> " + perm.get(k) + (withoutLoot.contains(k) ? " (sem drop)" : ""));
+                }
             }
             Map<String, List<String>> objectGroups = new HashMap<>();
             for (GameObject object : ObjectRegistry.getObjects()) {
@@ -113,13 +122,29 @@ public final class DropRandomizer {
         }
     }
 
+    /** True when the mob's public or private (boss) loot table has anything in it. */
+    public static boolean hasLoot(String mobStringID) {
+        try {
+            Mob mob = MobRegistry.getMob(MobRegistry.getMobID(mobStringID));
+            if (mob == null) return false;
+            LootTable loot = mob.getLootTable();
+            LootTable privateLoot = mob.getPrivateLootTable();
+            return (loot != null && !loot.items.isEmpty()) || (privateLoot != null && !privateLoot.items.isEmpty());
+        } catch (Throwable e) {
+            return false;
+        }
+    }
+
     /**
      * Objects only swap drops with objects that drop the same kind of thing. Objects that drop nothing on their own
      * stay out: the second tile of 2-tile rocks and crystal clusters ("...r", its drops come from the first tile),
      * and plain grass, withered grass, cobwebs and other grass that doesn't drop its own item.
+     * Walls and flower patches drop themselves, so they only join when that item can be obtained.
      */
     private static String objectGroup(GameObject object) {
         if (object.getClass().getSimpleName().endsWith("RObject")) return null;
+        if (object.getClass() == WallObject.class) return dropsOwnItem(object) ? "paredes" : null;
+        if (object instanceof FlowerPatchObject) return dropsOwnItem(object) ? "flores" : null;
         Class<?> c = object.getClass();
         while (c != null && c != GameObject.class) {
             String name = c.getSimpleName();
@@ -160,6 +185,11 @@ public final class DropRandomizer {
         } catch (NoSuchMethodException e) {
             return false;
         }
+    }
+
+    /** Mob whose loot the given mob drops, or null (used by the self-test). */
+    public static String getMobMapping(String mobStringID) {
+        return mobMapping.get(mobStringID);
     }
 
     /** Object stringID -> object whose drops it gives (used by the self-test). */
@@ -211,8 +241,12 @@ public final class DropRandomizer {
 
     // ===== Object loot and quantities =====
 
-    private static void onObjectDrops(ObjectLootTableDropsEvent event) {
+    /** Handles the drops of a destroyed object (public for the self-test). */
+    public static void onObjectDrops(ObjectLootTableDropsEvent event) {
         if (event.level == null || !event.level.isServer()) return;
+        // Something the player placed gives itself back, like in vanilla: no swap (that would turn walls or rocks into
+        // other items, or into nothing when the other object has no item) and no amount change
+        if (givesItselfBack(event)) return;
         if (!objectMapping.isEmpty() && event.object != null) {
             String from = event.object.getStringID();
             String to = objectMapping.get(from);
@@ -230,6 +264,21 @@ public final class DropRandomizer {
         if (SRS.settings().dropQuantities) {
             applyQuantities(event.objectDrops);
         }
+    }
+
+    /** True when the object was placed by a player and drops exactly its own item. */
+    private static boolean givesItselfBack(ObjectLootTableDropsEvent event) {
+        if (event.object == null || event.objectDrops == null || event.objectDrops.isEmpty()) return false;
+        try {
+            if (!event.level.objectLayer.isPlayerPlaced(event.layerID, event.tileX, event.tileY)) return false;
+        } catch (Exception e) {
+            return false;
+        }
+        String own = event.object.getStringID();
+        for (InventoryItem item : event.objectDrops) {
+            if (item == null || item.item == null || !item.item.getStringID().equals(own)) return false;
+        }
+        return true;
     }
 
     // ===== Random item =====
@@ -276,21 +325,16 @@ public final class DropRandomizer {
 
     public static void applyQuantities(List<InventoryItem> drops) {
         if (drops == null) return;
-        Iterator<InventoryItem> it = drops.iterator();
-        while (it.hasNext()) {
-            InventoryItem item = it.next();
+        for (InventoryItem item : drops) {
             if (item == null || item.item == null) continue;
             String id = item.item.getStringID();
             if (item.item.getStackSize() <= 1 || SRS.isItemExcluded(id)) continue;
             float exact = item.getAmount() * quantityFactor(id);
             int amount = (int) Math.floor(exact);
             if (GameRandom.globalRandom.nextFloat() < exact - amount) amount++;
-            amount = Math.min(amount, item.item.getStackSize() * 10);
-            if (amount <= 0) {
-                it.remove();
-            } else {
-                item.setAmount(amount);
-            }
+            // Never round a drop away: small drops (1-2 rune stones, crystals...) would often give nothing
+            amount = Math.max(1, Math.min(amount, item.item.getStackSize() * 10));
+            item.setAmount(amount);
         }
     }
 

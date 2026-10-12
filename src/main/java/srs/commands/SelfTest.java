@@ -7,13 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.Consumer;
+import necesse.engine.events.loot.ObjectLootTableDropsEvent;
 import necesse.engine.journal.JournalChallenge;
 import necesse.engine.journal.MultiJournalChallenge;
 import necesse.engine.localization.Localization;
 import necesse.engine.network.server.Server;
 import necesse.engine.network.server.ServerClient;
 import necesse.engine.registries.BuffRegistry;
+import necesse.engine.registries.ClassIDDataContainer;
 import necesse.engine.registries.ItemRegistry;
 import necesse.engine.registries.JournalChallengeRegistry;
 import necesse.engine.registries.MobRegistry;
@@ -21,6 +24,7 @@ import necesse.engine.registries.ObjectRegistry;
 import necesse.engine.registries.ProjectileRegistry;
 import necesse.engine.storyObjectives.objectives.bossObjectives.DefeatEvilsProtectorStoryObjective;
 import necesse.engine.util.GameRandom;
+import necesse.entity.mobs.EquipmentBuffManager;
 import necesse.entity.mobs.GameDamage;
 import necesse.entity.mobs.Mob;
 import necesse.entity.mobs.buffs.ActiveBuff;
@@ -28,11 +32,15 @@ import necesse.entity.mobs.buffs.BuffModifiers;
 import necesse.entity.mobs.buffs.EquipmentActiveBuff;
 import necesse.entity.mobs.buffs.staticBuffs.Buff;
 import necesse.entity.mobs.buffs.staticBuffs.armorBuffs.ArmorBuff;
+import necesse.entity.mobs.friendly.human.humanShop.BuyingShopItem;
+import necesse.entity.mobs.friendly.human.humanShop.HumanShop;
+import necesse.entity.mobs.friendly.human.humanShop.SellingShopItem;
 import necesse.entity.projectile.Projectile;
 import necesse.inventory.InventoryItem;
 import necesse.inventory.item.Item;
 import necesse.inventory.item.ItemStatTipList;
 import necesse.inventory.item.armorItem.ArmorItem;
+import necesse.inventory.item.armorItem.SetHelmetArmorItem;
 import necesse.inventory.item.baitItem.BaitItem;
 import necesse.inventory.item.matItem.FishItemInterface;
 import necesse.inventory.item.placeableItem.fishingRodItem.FishingRodItem;
@@ -49,6 +57,8 @@ import srs.core.MobPools;
 import srs.core.MobPools.Pool;
 import srs.core.SRS;
 import srs.random.DropRandomizer;
+import srs.random.EnchantmentRandomizer;
+import srs.random.EquipmentRandomizer;
 import srs.random.FishingRandomizer;
 import srs.random.MobDamageRandomizer;
 import srs.random.MobHealthRandomizer;
@@ -56,6 +66,7 @@ import srs.random.MobStatRandomizer;
 import srs.random.MobSpawnRandomizer;
 import srs.random.ProjectileRandomizer;
 import srs.random.QuestRewardRandomizer;
+import srs.random.ShopRandomizer;
 import srs.ui.MobChoices;
 
 /**
@@ -157,6 +168,28 @@ public final class SelfTest {
         if (!gainedDrops.isEmpty()) failures.merge("objetos sem drop que passaram a dropar (drop dobrado): " + gainedDrops, 1, Integer::sum);
         log.accept("Objetos: " + objectsSwapped + " com drops trocados, " + lostDrops.size() + " ficaram sem drop, " + gainedDrops.size() + " passaram a dropar");
 
+        // 2 - mobs that drop something must only take the loot of mobs that also drop something (and the other way around)
+        if (SRS.settings().drops) {
+            List<String> mixed = new ArrayList<>();
+            for (Pool pool : new Pool[]{Pool.HOSTILE, Pool.BOSS, Pool.CRITTER, Pool.ANIMAL}) {
+                for (String id : MobPools.get(pool)) {
+                    String to = DropRandomizer.getMobMapping(id);
+                    if (to != null && DropRandomizer.hasLoot(id) != DropRandomizer.hasLoot(to)) mixed.add(id + "->" + to);
+                }
+            }
+            if (!mixed.isEmpty()) failures.merge("mobs trocando drop com quem nao dropa nada: " + mixed, 1, Integer::sum);
+            Map<String, String> objects = DropRandomizer.getObjectMapping();
+            List<String> missing = new ArrayList<>();
+            for (String id : new String[]{"woodwall", "stonewall", "yellowflowerpatch", "cropplercarrot"}) {
+                boolean found = id.startsWith("croppler") ? DropRandomizer.getMobMapping(id) != null : objects.containsKey(id);
+                if (!found && !SRS.isItemExcluded(id) && !SRS.isMobExcluded(id)) missing.add(id);
+            }
+            if (!missing.isEmpty()) failures.merge("fora da troca de drops: " + missing, 1, Integer::sum);
+            log.accept("Drops: " + mixed.size() + " mobs com drop trocando com mob sem drop; paredes/canteiros/safrinhos na troca: "
+                    + (missing.isEmpty() ? "sim" : "faltam " + missing));
+            testPlayerPlaced(level, tile, failures, log);
+        }
+
         // 3 - fire every projectile type and tick it a few times
         Mob owner = MobRegistry.getMob(MobRegistry.getMobID("zombie"), level);
         int fired = 0;
@@ -223,6 +256,34 @@ public final class SelfTest {
                 }
             }
             log.accept("Substitutos de projetil: " + targetsOk + "/" + ProjectileRandomizer.getPool().size() + " funcionam criados de forma generica");
+
+            // Debug projectiles (mousetest draws "null" and numbers) must never be picked
+            for (String type : ProjectileRandomizer.getPool()) {
+                Projectile p = ProjectileRegistry.getProjectile(ProjectileRegistry.getProjectileID(type));
+                if (p != null && p.getClass().getSimpleName().contains("Test")) failures.merge("projetil de teste no sorteio: " + type, 1, Integer::sum);
+            }
+            // 14 - speed: a projectile added to the level flies at its type's multiplier
+            if (SRS.settings().projectileSpeed) {
+                Projectile p = null;
+                try {
+                    p = ProjectileRegistry.getProjectile(ProjectileRegistry.getProjectileID("stonearrow"), level);
+                    p.applyData(x, y, x + 300, y, 100.0F, 400, new GameDamage(10.0F), owner);
+                    p.resetUniqueID(GameRandom.globalRandom);
+                    level.entityManager.projectiles.add(p);
+                    Projectile added = level.entityManager.projectiles.get(p.getUniqueID(), false);
+                    if (added != null) {
+                        float expected = 100.0F * ProjectileRandomizer.getSpeedFactor(added.getStringID());
+                        log.accept("Velocidade: stonearrow (virou " + added.getStringID() + ") com velocidade 100 voa a " + Math.round(added.speed)
+                                + " (esperado " + Math.round(expected) + ")");
+                        if (Math.abs(added.speed - expected) > 0.5F) failures.merge("velocidade do projetil: " + added.speed + ", esperado " + expected, 1, Integer::sum);
+                        added.remove();
+                    }
+                } catch (Throwable e) {
+                    fail(failures, "velocidade de projetil", e);
+                } finally {
+                    if (p != null) p.remove();
+                }
+            }
             owner.remove();
         }
 
@@ -269,6 +330,14 @@ public final class SelfTest {
             log.accept("Armaduras equipadas: " + equipped + " (" + armorDiffs + " com valor de armadura diferente do original)");
         }
         log.accept("Equipamentos: " + buffs + " buffs aplicados, " + tooltips + " descricoes de armadura geradas");
+        if (SRS.settings().armorSetBonuses && "double".equalsIgnoreCase(SRS.settings().armorSetBonusMode)) testDoubleSetBonus(level, x, y, failures, log);
+        if (SRS.settings().enchantScrolls) {
+            log.accept("Pergaminhos: " + EnchantmentRandomizer.changedCount() + " encantamentos com valores randomizados");
+            if (EnchantmentRandomizer.changedCount() == 0) failures.merge("nenhum encantamento foi randomizado", 1, Integer::sum);
+        }
+
+        // 4 - shops: whole shops moved to other NPCs, and prices
+        testShops(level, x, y, failures, log);
 
         // 5.2/5.3 - enemy and boss damage
         int pooled = MobPools.get(Pool.HOSTILE).size() + MobPools.get(Pool.BOSS).size();
@@ -476,6 +545,140 @@ public final class SelfTest {
             log.accept(failures.size() + " falhas:");
             for (Map.Entry<String, Integer> e : failures.entrySet()) log.accept("  " + e.getKey());
         }
+    }
+
+    /**
+     * Breaking a swapped object: when a player placed it, it must give itself back; when it grew naturally, the swap
+     * applies. Uses an empty-looking tile next to the spawn and restores its player-placed flag afterwards.
+     */
+    private static void testPlayerPlaced(Level level, Point tile, Map<String, Integer> failures, Consumer<String> log) {
+        String from = null;
+        for (Map.Entry<String, String> e : new TreeMap<>(DropRandomizer.getObjectMapping()).entrySet()) {
+            if (!e.getKey().equals(e.getValue()) && ItemRegistry.itemExists(e.getKey()) && e.getKey().contains("wall")) {
+                from = e.getKey();
+                break;
+            }
+        }
+        if (from == null) return;
+        GameObject object = ObjectRegistry.getObject(from);
+        boolean before = level.objectLayer.isPlayerPlaced(0, tile.x, tile.y);
+        try {
+            String[] results = new String[2];
+            for (int placed = 0; placed < 2; placed++) {
+                level.objectLayer.setIsPlayerPlaced(0, tile.x, tile.y, placed == 1);
+                ArrayList<InventoryItem> drops = new ArrayList<>();
+                drops.add(new InventoryItem(from, 1));
+                ObjectLootTableDropsEvent event = new ObjectLootTableDropsEvent(object, level, 0, tile.x, tile.y,
+                        new Point(tile.x * 32 + 16, tile.y * 32 + 16), drops, new ArrayList<>());
+                DropRandomizer.onObjectDrops(event);
+                results[placed] = event.objectDrops == null || event.objectDrops.isEmpty() ? "nada" : event.objectDrops.get(0).item.getStringID();
+            }
+            if (!results[1].equals(from)) failures.merge(from + " colocado pelo jogador deu " + results[1] + " (esperado o proprio item)", 1, Integer::sum);
+            if (results[0].equals(from)) failures.merge(from + " natural nao trocou o drop", 1, Integer::sum);
+            log.accept("Quebrar " + from + ": natural -> " + results[0] + ", colocado pelo jogador -> " + results[1]);
+        } catch (Throwable t) {
+            fail(failures, "teste de objeto colocado", t);
+        } finally {
+            level.objectLayer.setIsPlayerPlaced(0, tile.x, tile.y, before);
+        }
+    }
+
+    /** Wearing a full set adds the set's own bonus and the extra one; taking the helmet off removes both. */
+    private static void testDoubleSetBonus(Level level, float x, float y, Map<String, Integer> failures, Consumer<String> log) {
+        SetHelmetArmorItem helmet = null;
+        for (Item item : ItemRegistry.getItems()) {
+            if (!(item instanceof SetHelmetArmorItem) || EquipmentRandomizer.getExtraSetBonus(item.getStringID()) == null) continue;
+            SetHelmetArmorItem candidate = (SetHelmetArmorItem) item;
+            if (candidate.setChestStringID != null && candidate.setBootsStringID != null
+                    && ItemRegistry.itemExists(candidate.setChestStringID) && ItemRegistry.itemExists(candidate.setBootsStringID)) {
+                helmet = candidate;
+                break;
+            }
+        }
+        if (helmet == null) {
+            failures.merge("bonus duplo ligado, mas nenhum capacete ganhou bonus extra", 1, Integer::sum);
+            return;
+        }
+        String extra = EquipmentRandomizer.getExtraSetBonus(helmet.getStringID());
+        Mob human = MobRegistry.getMob(MobRegistry.getMobID("human"), level);
+        try {
+            level.entityManager.addMob(human, x, y);
+            final InventoryItem[] armor = {new InventoryItem(helmet), new InventoryItem(helmet.setChestStringID), new InventoryItem(helmet.setBootsStringID)};
+            EquipmentBuffManager manager = new EquipmentBuffManager(human) {
+                @Override
+                public InventoryItem getArmorItem(int slot) {
+                    return armor[slot];
+                }
+
+                @Override
+                public InventoryItem getCosmeticItem(int slot) {
+                    return null;
+                }
+
+                @Override
+                public ArrayList<InventoryItem> getTrinketItems() {
+                    return new ArrayList<>();
+                }
+            };
+            manager.updateArmorBuffs();
+            boolean own = human.buffManager.hasBuff(helmet.buffType);
+            boolean extraOn = human.buffManager.hasBuff(extra);
+            armor[0] = null;
+            manager.updateArmorBuffs();
+            boolean extraAfter = human.buffManager.hasBuff(extra);
+            log.accept("Bonus duplo: " + helmet.getStringID() + " com o conjunto -> " + helmet.buffType + " " + (own ? "ativo" : "INATIVO")
+                    + " + " + extra + " " + (extraOn ? "ativo" : "INATIVO") + "; sem o capacete o extra " + (extraAfter ? "CONTINUA" : "sai"));
+            if (!own || !extraOn || extraAfter) failures.merge("bonus duplo de " + helmet.getStringID() + " nao funcionou", 1, Integer::sum);
+        } catch (Throwable t) {
+            fail(failures, "bonus duplo", t);
+        } finally {
+            human.remove();
+        }
+    }
+
+    private static void testShops(Level level, float x, float y, Map<String, Integer> failures, Consumer<String> log) {
+        List<String> lines = new ArrayList<>();
+        // Every shop NPC must still be constructible with its swapped shop (a duplicate shop item throws in the constructor)
+        int shopNPCs = 0;
+        for (ClassIDDataContainer<Mob> container : MobRegistry.getMobs()) {
+            try {
+                if (container.newInstance() instanceof HumanShop) shopNPCs++;
+            } catch (Throwable t) {
+                Throwable cause = t.getCause() != null ? t.getCause() : t;
+                fail(failures, "criar " + container.getIDData().getStringID(), cause);
+            }
+        }
+        lines.add(shopNPCs + " NPCs de loja criados");
+        String npc = "blacksmithhuman";
+        String to = ShopRandomizer.getNpcShop(npc);
+        if (to != null && !to.equals(npc)) {
+            Mob mob = MobRegistry.getMob(MobRegistry.getMobID(npc), level);
+            try {
+                level.entityManager.addMob(mob, x, y);
+                Set<String> got = new TreeSet<>();
+                for (SellingShopItem item : ((HumanShop) mob).shop.sellingShop.getItems()) got.add(item.getStringID());
+                Set<String> expected = new TreeSet<>();
+                for (SellingShopItem item : ((HumanShop) MobRegistry.getMob(MobRegistry.getMobID(to))).shop.sellingShop.getItems()) expected.add(item.getStringID());
+                lines.add(npc + " vende como " + to + " " + got);
+                if (!got.equals(expected)) failures.merge(npc + " devia vender como " + to + " " + expected + ", vende " + got, 1, Integer::sum);
+            } catch (Throwable t) {
+                fail(failures, "loja de " + npc, t);
+            } finally {
+                mob.remove();
+            }
+        }
+        if (SRS.settings().shopPrices) {
+            Mob template = MobRegistry.getMob(MobRegistry.getMobID(npc));
+            for (BuyingShopItem item : ((HumanShop) template).shop.buyingShop.getItems()) {
+                int price = ShopRandomizer.modifyBuyingPrice(item, 100);
+                float a = SRS.settings().shopPricesMin, b = SRS.settings().shopPricesMax;
+                if (price < Math.floor(100 * Math.min(a, b)) - 1 || price > Math.ceil(100 * Math.max(a, b)) + 1) {
+                    failures.merge("preco de " + item.getStringID() + " fora da faixa: " + price, 1, Integer::sum);
+                }
+                if (lines.size() < 3) lines.add(item.getStringID() + " compra por 100 -> " + price);
+            }
+        }
+        if (!lines.isEmpty()) log.accept("Lojas: " + String.join("; ", lines));
     }
 
     private static String names(String[][] entries) {

@@ -27,6 +27,9 @@ public final class SoundRandomizer {
     private static final String[] INTERFACE_WORDS = {"open", "close", "coins", "eat", "drink", "jingle", "tick", "tap", "teleport",
             "journal", "challenge", "camera", "shutter", "bookshuffle", "cling", "flick", "squeak", "place"};
 
+    private static final String SOUND_FOLDER = "sound/";
+
+    /** Full resource path ("sound/music/forestpath.ogg") -> full resource path of the sound played instead. */
     private static final Map<String, String> mapping = new HashMap<>();
     private static boolean built;
 
@@ -96,14 +99,17 @@ public final class SoundRandomizer {
         return false;
     }
 
-    /** Called from the GameSound.fromFileRaw patch. */
+    /**
+     * Called from the GameSound.fromFileRaw patch. The game asks for paths relative to the sound folder
+     * ("music/forestpath") and reads them from "sound/" + path, while the resource list has the full path.
+     */
     public static String remap(String filePath) {
         if (filePath == null || !SRS.settingsApplied() || !SRS.settings().sounds) return filePath;
         if (!built) build();
         if (mapping.isEmpty()) return filePath;
-        String key = filePath.endsWith(".ogg") ? filePath : filePath + ".ogg";
+        String key = SOUND_FOLDER + (filePath.endsWith(".ogg") ? filePath : filePath + ".ogg");
         String to = mapping.get(key);
-        return to == null ? filePath : to;
+        return to == null ? filePath : to.substring(SOUND_FOLDER.length());
     }
 
 }

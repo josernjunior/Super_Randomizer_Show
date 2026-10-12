@@ -16,6 +16,7 @@ import necesse.engine.registries.ProjectileRegistry;
 import necesse.entity.Entity;
 import necesse.entity.projectile.Projectile;
 import necesse.level.maps.Level;
+import srs.SRSSettings;
 import srs.core.Reflect;
 import srs.core.SRS;
 import srs.core.SeedRandom;
@@ -28,17 +29,21 @@ import srs.core.Spoiler;
  * Projectiles that can't work when created generically (boomerangs, summoning projectiles, bombs, projectiles that
  * need a target or extra data) are left out. As a safety net, a replacement that throws while being added or ticked
  * is removed and its type is never used as a replacement again.
+ * <p>
+ * Optionally every projectile type also flies at a fixed speed multiplier from the seed.
  */
 public final class ProjectileRandomizer {
 
+    /** "Test": the developers' debug projectiles (mousetest draws debug numbers and "null", pathtest is invisible). */
     private static final String[] UNSAFE_NAME_PARTS = {"Spawn", "Summon", "Bomb", "Boomerang", "Reanimation", "SpiritOrb",
-            "SpiritLeaf", "DryadBow", "Trap", "Hook", "Fishing", "Following", "Pet", "Golem", "Ascended", "Mount", "Bobber"};
+            "SpiritLeaf", "DryadBow", "Trap", "Hook", "Fishing", "Following", "Pet", "Golem", "Ascended", "Mount", "Bobber", "Test"};
 
     /** Found with /srs test: these break when created without the data their weapon/mob normally gives them. */
     private static final Set<String> KNOWN_BAD = new HashSet<>(Arrays.asList(
             "voidwizardhoming", "soundwave", "waterbolt", "trenchcoatgoblinspawn", "whipprojectile", "hexedbladegreatswordwave"));
 
     private static final Map<String, String> mapping = new HashMap<>();
+    private static final Map<String, Float> speedFactors = new HashMap<>();
     private static final List<String> pool = new ArrayList<>();
     private static final Set<String> badTargets = Collections.synchronizedSet(new HashSet<>());
     private static final Set<String> reportedErrors = new HashSet<>();
@@ -49,6 +54,8 @@ public final class ProjectileRandomizer {
     public static void build() {
         mapping.clear();
         pool.clear();
+        speedFactors.clear();
+        buildSpeeds();
         if (!SRS.settings().projectiles) return;
         int count = registrySize();
         for (int id = 0; id < count; id++) {
@@ -72,6 +79,30 @@ public final class ProjectileRandomizer {
                 lines.add(k + " -> " + to);
             }
         }
+    }
+
+    /** Every projectile type gets a fixed speed multiplier, whether or not projectile swapping is on. */
+    private static void buildSpeeds() {
+        SRSSettings s = SRS.settings();
+        if (!s.projectileSpeed || (s.projectileSpeedMin == 1.0F && s.projectileSpeedMax == 1.0F)) return;
+        List<String> types = new ArrayList<>();
+        int count = registrySize();
+        for (int id = 0; id < count; id++) {
+            String stringID = ProjectileRegistry.getProjectileStringID(id);
+            if (stringID != null) types.add(stringID);
+        }
+        Collections.sort(types);
+        List<String> lines = Spoiler.section("14 - Projeteis: velocidade (tipo: multiplicador)");
+        for (String type : types) {
+            float factor = Math.max(0.05F, SeedRandom.range("projectiles:speed:" + type, s.projectileSpeedMin, s.projectileSpeedMax));
+            speedFactors.put(type, factor);
+            lines.add(type + ": x" + String.format(java.util.Locale.ROOT, "%.2f", factor));
+        }
+    }
+
+    public static float getSpeedFactor(String type) {
+        Float factor = type == null ? null : speedFactors.get(type);
+        return factor == null ? 1.0F : factor;
     }
 
     public static int registrySize() {
@@ -128,7 +159,7 @@ public final class ProjectileRandomizer {
     }
 
     public static boolean isActive() {
-        return !mapping.isEmpty();
+        return !mapping.isEmpty() || !speedFactors.isEmpty();
     }
 
     public static String getMapping(String stringID) {
@@ -150,9 +181,12 @@ public final class ProjectileRandomizer {
         return replacement;
     }
 
-    /** Called from the EntityList.add patch for every entity added to a level. */
+    /**
+     * Called from the EntityList.add patch for every entity added to a level: swaps the projectile type, then applies
+     * the speed multiplier of the type that will actually fly. Network spawns (addHidden) already carry the server's speed.
+     */
     public static Entity swap(Entity entity, Level level) {
-        if (mapping.isEmpty() || !(entity instanceof Projectile) || level == null) return entity;
+        if (!(entity instanceof Projectile) || level == null) return entity;
         Projectile original = (Projectile) entity;
         String from;
         try {
@@ -160,15 +194,23 @@ public final class ProjectileRandomizer {
         } catch (Exception e) {
             return entity;
         }
+        Projectile result = original;
+        String type = from;
         String to = from == null ? null : mapping.get(from);
-        if (to == null || badTargets.contains(to)) return entity;
-        try {
-            Projectile replacement = createLike(to, original, level);
-            return replacement == null ? entity : replacement;
-        } catch (Throwable e) {
-            markBad(to, "create", e);
-            return entity;
+        if (to != null && !badTargets.contains(to)) {
+            try {
+                Projectile replacement = createLike(to, original, level);
+                if (replacement != null) {
+                    result = replacement;
+                    type = to;
+                }
+            } catch (Throwable e) {
+                markBad(to, "create", e);
+            }
         }
+        float speed = getSpeedFactor(type);
+        if (speed != 1.0F) result.speed *= speed;
+        return result;
     }
 
     /**

@@ -8,7 +8,7 @@ import net.bytebuddy.asm.Advice;
 import srs.random.ProjectileRandomizer;
 
 /**
- * Feature 14: swaps freshly spawned projectiles. Network spawns use addHidden and are not affected.
+ * Feature 14: swaps freshly spawned projectiles and applies their speed multiplier. Network spawns use addHidden and are not affected.
  * If adding the replacement throws, the replacement is dropped and the exception swallowed.
  */
 @ModMethodPatch(target = EntityList.class, name = "add", arguments = {Entity.class})
