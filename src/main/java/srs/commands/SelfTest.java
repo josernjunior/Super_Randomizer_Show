@@ -49,6 +49,9 @@ import necesse.inventory.item.matItem.FishItemInterface;
 import necesse.inventory.item.placeableItem.fishingRodItem.FishingRodItem;
 import necesse.inventory.lootTable.LootList;
 import necesse.inventory.lootTable.LootTable;
+import necesse.inventory.recipe.CanCraft;
+import necesse.inventory.recipe.Recipe;
+import necesse.inventory.recipe.Recipes;
 import necesse.level.gameObject.GameObject;
 import necesse.level.maps.Level;
 import necesse.level.maps.LevelTile;
@@ -70,6 +73,7 @@ import srs.random.MobStatRandomizer;
 import srs.random.MobSpawnRandomizer;
 import srs.random.ProjectileRandomizer;
 import srs.random.QuestRewardRandomizer;
+import srs.random.RecipeRandomizer;
 import srs.random.ShopRandomizer;
 import srs.ui.MobChoices;
 
@@ -150,48 +154,67 @@ public final class SelfTest {
         level.entityManager.pickups.stream().forEach(p -> p.remove());
         log.accept("Mortes: " + killed + " mobs mortos, " + drops + " drops gerados");
 
-        // 2 - object drops: objects must only swap with objects that also drop something (or both nothing)
-        int objectsSwapped = 0;
-        List<String> lostDrops = new ArrayList<>();
-        List<String> gainedDrops = new ArrayList<>();
-        for (Map.Entry<String, String> e : new TreeMap<>(DropRandomizer.getObjectMapping()).entrySet()) {
-            if (e.getKey().equals(e.getValue())) continue;
-            objectsSwapped++;
-            try {
-                GameObject from = ObjectRegistry.getObject(e.getKey());
-                GameObject to = ObjectRegistry.getObject(e.getValue());
-                boolean fromDrops = !from.getLootTable(level, 0, tile.x, tile.y).items.isEmpty();
-                boolean toDrops = !to.getLootTable(level, 0, tile.x, tile.y).items.isEmpty();
-                if (fromDrops && !toDrops) lostDrops.add(e.getKey() + "->" + e.getValue());
-                if (!fromDrops && toDrops) gainedDrops.add(e.getKey() + "->" + e.getValue());
-            } catch (Throwable t) {
-                fail(failures, "drops de " + e.getKey(), t);
-            }
-        }
-        if (!lostDrops.isEmpty()) failures.merge("objetos que ficaram sem drop: " + lostDrops, 1, Integer::sum);
-        if (!gainedDrops.isEmpty()) failures.merge("objetos sem drop que passaram a dropar (drop dobrado): " + gainedDrops, 1, Integer::sum);
-        log.accept("Objetos: " + objectsSwapped + " com drops trocados, " + lostDrops.size() + " ficaram sem drop, " + gainedDrops.size() + " passaram a dropar");
-
-        // 2 - mobs that drop something must only take the loot of mobs that also drop something (and the other way around)
+        // 2 - drop swaps: whatever drops something must only take the drops of something that also drops (and the other way
+        // around); only checked groups take part; in group mode nothing leaves its group; mob <-> object drops must roll
         if (SRS.settings().drops) {
-            List<String> mixed = new ArrayList<>();
-            for (Pool pool : new Pool[]{Pool.HOSTILE, Pool.BOSS, Pool.CRITTER, Pool.ANIMAL}) {
-                for (String id : MobPools.get(pool)) {
-                    String to = DropRandomizer.getMobMapping(id);
-                    if (to != null && DropRandomizer.hasLoot(id) != DropRandomizer.hasLoot(to)) mixed.add(id + "->" + to);
+            boolean allMode = "all".equalsIgnoreCase(SRS.settings().dropsMode);
+            Set<String> enabledGroups = SRS.parseList(SRS.settings().dropGroups);
+            int swappedPairs = 0, crossGroup = 0, mobObject = 0;
+            List<String> lostDrops = new ArrayList<>();
+            List<String> gainedDrops = new ArrayList<>();
+            for (Map.Entry<String, String> e : new TreeMap<>(DropRandomizer.getMapping()).entrySet()) {
+                String fromGroup = DropRandomizer.candidateGroup(e.getKey());
+                String toGroup = DropRandomizer.candidateGroup(e.getValue());
+                if (!enabledGroups.contains(fromGroup) || !enabledGroups.contains(toGroup)) {
+                    failures.merge("troca de drop num grupo desmarcado: " + e.getKey() + "->" + e.getValue(), 1, Integer::sum);
+                }
+                if (e.getKey().equals(e.getValue())) continue;
+                swappedPairs++;
+                if (!fromGroup.equals(toGroup)) crossGroup++;
+                if (!allMode && !fromGroup.equals(toGroup)) failures.merge("troca de drop fora do grupo: " + e.getKey() + "->" + e.getValue(), 1, Integer::sum);
+                boolean crossKind = e.getKey().startsWith(DropRandomizer.MOB) != e.getValue().startsWith(DropRandomizer.MOB);
+                try {
+                    boolean fromDrops = DropRandomizer.dropsSomething(e.getKey(), level, tile.x, tile.y);
+                    boolean toDrops = DropRandomizer.dropsSomething(e.getValue(), level, tile.x, tile.y);
+                    if (fromDrops && !toDrops) lostDrops.add(e.getKey() + "->" + e.getValue());
+                    if (!fromDrops && toDrops) gainedDrops.add(e.getKey() + "->" + e.getValue());
+                    if (crossKind) {
+                        mobObject++;
+                        if (DropRandomizer.rollDrops(e.getValue(), level, 0, tile.x, tile.y) == null) {
+                            failures.merge("drops de " + e.getValue() + " nao foram gerados para " + e.getKey(), 1, Integer::sum);
+                        }
+                    }
+                } catch (Throwable t) {
+                    fail(failures, "drops de " + e.getKey() + " -> " + e.getValue(), t);
                 }
             }
-            if (!mixed.isEmpty()) failures.merge("mobs trocando drop com quem nao dropa nada: " + mixed, 1, Integer::sum);
-            Map<String, String> objects = DropRandomizer.getObjectMapping();
+            if (!lostDrops.isEmpty()) failures.merge("trocas que ficaram sem drop: " + lostDrops, 1, Integer::sum);
+            if (!gainedDrops.isEmpty()) failures.merge("trocas sem drop que passaram a dropar (drop dobrado): " + gainedDrops, 1, Integer::sum);
             List<String> missing = new ArrayList<>();
-            for (String id : new String[]{"woodwall", "stonewall", "yellowflowerpatch", "cropplercarrot"}) {
-                boolean found = id.startsWith("croppler") ? DropRandomizer.getMobMapping(id) != null : objects.containsKey(id);
-                if (!found && !SRS.isItemExcluded(id) && !SRS.isMobExcluded(id)) missing.add(id);
+            for (String key : new String[]{"object:woodwall", "object:stonewall", "object:yellowflowerpatch", "object:wildsunflower",
+                    "object:sunflowerseed4", "object:beetseed4", "mob:cropplercarrot"}) {
+                String id = DropRandomizer.idOf(key);
+                if (SRS.isItemExcluded(id) || SRS.isMobExcluded(id)) continue;
+                String group = DropRandomizer.candidateGroup(key);
+                if (group == null || enabledGroups.contains(group) && !DropRandomizer.getMapping().containsKey(key)) missing.add(id);
             }
             if (!missing.isEmpty()) failures.merge("fora da troca de drops: " + missing, 1, Integer::sum);
-            log.accept("Drops: " + mixed.size() + " mobs com drop trocando com mob sem drop; paredes/canteiros/safrinhos na troca: "
+            // Crops that haven't grown only give their seed back: swapping them would turn planting and breaking a seed into free loot
+            List<String> unripe = new ArrayList<>();
+            for (String id : new String[]{"beetseed", "beetseed1", "beetseed3", "sunflowerseed2"}) {
+                if (DropRandomizer.candidateGroup(DropRandomizer.OBJECT + id) != null) unripe.add(id);
+            }
+            if (!unripe.isEmpty()) failures.merge("plantacoes que ainda nao cresceram na troca de drops: " + unripe, 1, Integer::sum);
+            String beet = DropRandomizer.getMapping().get(DropRandomizer.OBJECT + "beetseed4");
+            String sunflower = DropRandomizer.getMapping().get(DropRandomizer.OBJECT + "sunflowerseed4");
+            log.accept("Plantacoes: beterraba madura dropa como " + (beet == null ? "ela mesma" : beet)
+                    + ", girassol maduro dropa como " + (sunflower == null ? "ele mesmo" : sunflower));
+            log.accept("Drops (modo " + SRS.settings().dropsMode + ", grupos " + String.join(",", enabledGroups) + "): " + swappedPairs
+                    + " trocados, " + crossGroup + " entre grupos diferentes, " + mobObject + " entre mob e objeto, " + lostDrops.size()
+                    + " ficaram sem drop, " + gainedDrops.size() + " passaram a dropar; paredes/canteiros/safrinhos na troca: "
                     + (missing.isEmpty() ? "sim" : "faltam " + missing));
             testPlayerPlaced(level, tile, failures, log);
+            testGrownCrop(level, tile, failures, log);
         }
 
         // 3 - fire every projectile type and tick it a few times
@@ -438,6 +461,18 @@ public final class SelfTest {
         }
         log.accept("Defesa/empurrao: " + String.join("; ", statLines));
 
+        // 3 - free revival potion: the indexed recipes must need nothing and count as craftable
+        if (SRS.settings().recipesFreeRevivalPotion) {
+            int free = 0;
+            for (Recipe r : Recipes.getRecipes()) {
+                if (!r.resultStringID.equals(RecipeRandomizer.REVIVAL_POTION)) continue;
+                if (r.ingredients.length == 0 && new CanCraft(r, false).canCraft()) free++;
+                else failures.merge("receita de " + r.resultStringID + "@" + r.tech.getStringID() + " ainda pede ingredientes", 1, Integer::sum);
+            }
+            if (free == 0) failures.merge("nenhuma receita gratis de " + RecipeRandomizer.REVIVAL_POTION, 1, Integer::sum);
+            log.accept("Pocao de Ressureicao gratis: " + free + " receita(s) sem ingredientes");
+        }
+
         // 17 - quest rewards: the tables the game reads must be the wrapped ones, and every roll must give pool items
         if (SRS.settings().questRewards) {
             int elder = 0, journal = 0, rolledItems = 0;
@@ -575,9 +610,10 @@ public final class SelfTest {
      */
     private static void testPlayerPlaced(Level level, Point tile, Map<String, Integer> failures, Consumer<String> log) {
         String from = null;
-        for (Map.Entry<String, String> e : new TreeMap<>(DropRandomizer.getObjectMapping()).entrySet()) {
-            if (!e.getKey().equals(e.getValue()) && ItemRegistry.itemExists(e.getKey()) && e.getKey().contains("wall")) {
-                from = e.getKey();
+        for (Map.Entry<String, String> e : new TreeMap<>(DropRandomizer.getMapping()).entrySet()) {
+            String id = DropRandomizer.idOf(e.getKey());
+            if (e.getKey().startsWith(DropRandomizer.OBJECT) && !e.getKey().equals(e.getValue()) && ItemRegistry.itemExists(id) && id.contains("wall")) {
+                from = id;
                 break;
             }
         }
@@ -600,6 +636,41 @@ public final class SelfTest {
             log.accept("Quebrar " + from + ": natural -> " + results[0] + ", colocado pelo jogador -> " + results[1]);
         } catch (Throwable t) {
             fail(failures, "teste de objeto colocado", t);
+        } finally {
+            level.objectLayer.setIsPlayerPlaced(0, tile.x, tile.y, before);
+        }
+    }
+
+    /**
+     * Breaking a grown beet a player planted: its drops (seeds + beets) aren't its own item, so the swap must apply
+     * and give only what the other object can drop.
+     */
+    private static void testGrownCrop(Level level, Point tile, Map<String, Integer> failures, Consumer<String> log) {
+        String from = DropRandomizer.OBJECT + "beetseed4";
+        String to = DropRandomizer.getMapping().get(from);
+        if (to == null || to.equals(from)) return;
+        GameObject crop = ObjectRegistry.getObject(DropRandomizer.idOf(from));
+        boolean before = level.objectLayer.isPlayerPlaced(0, tile.x, tile.y);
+        try {
+            level.objectLayer.setIsPlayerPlaced(0, tile.x, tile.y, true);
+            ObjectLootTableDropsEvent event = new ObjectLootTableDropsEvent(crop, level, 0, tile.x, tile.y, new Point(tile.x * 32 + 16, tile.y * 32 + 16),
+                    crop.getObjectDroppedItems(level, 0, tile.x, tile.y, "onDestroyed"), new ArrayList<>());
+            DropRandomizer.onObjectDrops(event);
+            List<String> got = new ArrayList<>();
+            for (InventoryItem item : event.objectDrops) got.add(item.item.getStringID() + " x" + item.getAmount());
+            if (to.startsWith(DropRandomizer.OBJECT)) {
+                LootList possible = new LootList();
+                ObjectRegistry.getObject(DropRandomizer.idOf(to)).getLootTable(level, 0, tile.x, tile.y).addPossibleLoot(possible);
+                Set<Item> allowed = new HashSet<>();
+                for (Item item : possible.getItems()) allowed.add(item);
+                for (InventoryItem item : event.objectDrops) {
+                    if (!allowed.contains(item.item)) failures.merge("beterraba madura plantada deu " + item.item.getStringID() + " (troca com " + to + ")", 1, Integer::sum);
+                }
+                if (event.objectDrops.isEmpty()) failures.merge("beterraba madura plantada nao dropou nada (troca com " + to + ")", 1, Integer::sum);
+            }
+            log.accept("Quebrar beterraba madura plantada pelo jogador (dropa como " + to + "): " + got);
+        } catch (Throwable t) {
+            fail(failures, "teste de plantacao madura", t);
         } finally {
             level.objectLayer.setIsPlayerPlaced(0, tile.x, tile.y, before);
         }

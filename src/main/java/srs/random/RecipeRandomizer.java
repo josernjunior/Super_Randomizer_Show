@@ -19,8 +19,11 @@ import srs.core.Spoiler;
  * Feature 3: shuffles ingredient lists between recipes. The result, amount and crafting station of every recipe
  * stay the same, only what it costs changes. By default ingredients only move between recipes of the same station,
  * which keeps progression roughly intact. The shuffle level (1% to 100%) is the share of recipes that take part.
+ * The free revival potion option empties that recipe's ingredients first, so the shuffle leaves it out.
  */
 public final class RecipeRandomizer {
+
+    public static final String REVIVAL_POTION = "revivalpotion";
 
     private static final Map<Recipe, Ingredient[]> originalModIngredients = new IdentityHashMap<>();
 
@@ -29,7 +32,27 @@ public final class RecipeRandomizer {
 
     /** Called with the list returned by Recipes.getDefaultRecipes(), right before the game indexes it. */
     public static void randomize(List<Recipe> defaultRecipes) {
-        if (!SRS.settings().recipes || defaultRecipes == null) return;
+        if (defaultRecipes == null) return;
+        if (SRS.settings().recipesFreeRevivalPotion) makeFree(defaultRecipes, REVIVAL_POTION);
+        if (SRS.settings().recipes) shuffle(defaultRecipes);
+    }
+
+    /** Every vanilla recipe for the item needs no ingredients (an empty array always counts as craftable). */
+    private static void makeFree(List<Recipe> defaultRecipes, String itemStringID) {
+        List<String> lines = Spoiler.section("3 - Receitas gratis");
+        try {
+            for (Recipe r : defaultRecipes) {
+                if (!r.resultStringID.equals(itemStringID)) continue;
+                lines.add(r.resultStringID + "@" + (r.tech == null ? "none" : r.tech.getStringID()) + ": sem ingredientes (antes: "
+                        + describe(r.ingredients) + ")");
+                Reflect.set(Recipe.class, r, "ingredients", new Ingredient[0]);
+            }
+        } catch (Exception e) {
+            SRS.warn("Could not make " + itemStringID + " free: " + e);
+        }
+    }
+
+    private static void shuffle(List<Recipe> defaultRecipes) {
         try {
             List<Recipe> all = new ArrayList<>(defaultRecipes);
             List<Recipe> modRecipes = Reflect.get(Recipes.class, null, "modRecipes");

@@ -57,6 +57,9 @@ public class SRSConfigForm extends Form {
             {"items", "Ícones de itens"}, {"mobs", "Mobs e NPCs"}, {"player/armor", "Armaduras e cosméticos"},
             {"player/weapons", "Armas (na mão)"}, {"player/holditems", "Itens segurados"}, {"player/hair", "Cabelos"},
             {"projectiles", "Projéteis"}};
+    private static final String[][] DROP_GROUPS = {
+            {"enemies", "Inimigos"}, {"bosses", "Chefes"}, {"critters", "Bichos"}, {"animals", "Animais"}, {"rocks", "Rochas"},
+            {"trees", "Árvores"}, {"plants", "Plantas"}, {"crops", "Plantações"}, {"walls", "Paredes"}};
     private static final String[][] SOUND_CATEGORIES = {
             {"music", "Músicas"}, {"animals", "Animais"}, {"creatures", "Criaturas"}, {"environment", "Ambiente"},
             {"weather", "Clima"}, {"weapons", "Armas"}, {"impacts", "Impactos e magias"}, {"interface", "Interface e baús"},
@@ -211,11 +214,19 @@ public class SRSConfigForm extends Form {
         listChecks(2, MobChoices.townNPCs(edit.townNPCPool), s -> s.townNPCPool, (s, v) -> s.townNPCPool = v, () -> edit.mobSpawns && edit.mobSpawnTownNPCs);
         flow.next(4);
         label(1, "1.2 - Chefes que podem trocar entre si (vale também para a troca de drops):");
-        listChecks(2, numbered(MobChoices.bosses(edit.bossPool)), s -> s.bossPool, (s, v) -> s.bossPool = v, () -> edit.mobSpawns || edit.drops);
+        listChecks(2, numbered(MobChoices.bosses(edit.bossPool)), s -> s.bossPool, (s, v) -> s.bossPool = v,
+                () -> edit.mobSpawns || edit.drops && SRS.parseList(edit.dropGroups).contains("bosses"));
 
         section("2 - Drops");
-        check(0, "Trocar quem dropa o quê (inimigos, chefes, bichos, rochas, árvores, plantas, flores e paredes)", s -> s.drops, (s, v) -> s.drops = v, null);
-        label(1, "Quem dropa algo só troca com quem também dropa. Objetos colocados por você devolvem o próprio item.");
+        check(0, "Trocar quem dropa o quê", s -> s.drops, (s, v) -> s.drops = v, null);
+        label(1, "Grupos que participam:");
+        listChecks(2, 3, DROP_GROUPS, s -> s.dropGroups, (s, v) -> s.dropGroups = v, () -> edit.drops);
+        Map<String, String> dropModes = new LinkedHashMap<>();
+        dropModes.put("group", "Troca entre o mesmo grupo/classificação");
+        dropModes.put("all", "Troca totalmente aleatória");
+        dropdown(1, "Modo:", dropModes, s -> s.dropsMode, (s, v) -> s.dropsMode = v, () -> edit.drops);
+        label(1, "Na troca totalmente aleatória, os grupos marcados viram um grupo só: um zumbi pode dropar como uma árvore, e uma rocha "
+                + "como um chefe. Quem dropa algo só troca com quem também dropa. Objetos colocados por você devolvem o próprio item.");
         check(0, "Randomizar a quantidade de cada item dropado (nunca zera um drop)", s -> s.dropQuantities, (s, v) -> s.dropQuantities = v, null);
         slider(1, "Quantidade mínima", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.dropQuantityMin, (s, v) -> s.dropQuantityMin = v);
         slider(1, "Quantidade máxima", 0.0F, 5.0F, 0.1F, MULTIPLIER, s -> s.dropQuantityMax, (s, v) -> s.dropQuantityMax = v);
@@ -228,6 +239,10 @@ public class SRSConfigForm extends Form {
                 (s, v) -> s.recipesSameStation = v, () -> edit.recipes);
         slider(1, "Nível de embaralhamento (parte das receitas que trocam de ingredientes)", 0.01F, 1.0F, 0.01F, PERCENT,
                 s -> s.recipesShuffleLevel, (s, v) -> s.recipesShuffleLevel = v);
+        flow.next(4);
+        check(0, "Poção de Ressureição grátis",
+                "Ativando esta opção, poção de ressureição é feita sem precisar de ingredientes na bancada de alquimia",
+                s -> s.recipesFreeRevivalPotion, (s, v) -> s.recipesFreeRevivalPotion = v, null);
 
         section("4 - Lojas");
         check(0, "Embaralhar as lojas dos NPCs de cidade", s -> s.shops, (s, v) -> s.shops = v, null);
@@ -537,8 +552,12 @@ public class SRSConfigForm extends Form {
     /** One checkbox per known entry of a comma separated list. Unknown entries typed in the cfg are kept. */
     private void listChecks(int indent, String[][] entries, Function<SRSSettings, String> getter, BiConsumer<SRSSettings, String> setter,
                             BooleanSupplier enabledWhen) {
+        listChecks(indent, 2, entries, getter, setter, enabledWhen);
+    }
+
+    private void listChecks(int indent, int columns, String[][] entries, Function<SRSSettings, String> getter, BiConsumer<SRSSettings, String> setter,
+                            BooleanSupplier enabledWhen) {
         if (!visible) return;
-        int columns = 2;
         int columnWidth = width(indent) / columns;
         for (int i = 0; i < entries.length; i++) {
             final String key = entries[i][0];

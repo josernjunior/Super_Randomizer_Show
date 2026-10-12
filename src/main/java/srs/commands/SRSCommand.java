@@ -149,8 +149,10 @@ public class SRSCommand extends ModularChatCommand {
             }
             default: {
                 log.add("Super Randomizer Show - seed " + s.seed);
-                log.add(" 1 Mobs: " + onOff(s.mobSpawns) + " | 2 Drops: " + onOff(s.drops) + " (qtd " + onOff(s.dropQuantities) + ")"
-                        + " | 3 Receitas: " + onOff(s.recipes) + " (" + Math.round(s.recipesShuffleLevel * 100) + "%)"
+                log.add(" 1 Mobs: " + onOff(s.mobSpawns) + " | 2 Drops: " + onOff(s.drops) + " (" + s.dropsMode + ": " + s.dropGroups
+                        + "; qtd " + onOff(s.dropQuantities) + ")"
+                        + " | 3 Receitas: " + onOff(s.recipes) + " (" + Math.round(s.recipesShuffleLevel * 100) + "%, pocao de ressureicao gratis "
+                        + onOff(s.recipesFreeRevivalPotion) + ")"
                         + " | 4 Lojas: " + onOff(s.shops) + " (" + s.shopsMode + "), precos " + onOff(s.shopPrices));
                 log.add(" 5 Danos: armas " + onOff(s.weaponDamage) + ", inimigos " + onOff(s.enemyDamage) + ", chefes " + onOff(s.bossDamage)
                         + " | 6 Vida: inimigos " + onOff(s.enemyHealth) + ", aldeoes " + onOff(s.villagerHealth) + ", bichos " + onOff(s.critterHealth)

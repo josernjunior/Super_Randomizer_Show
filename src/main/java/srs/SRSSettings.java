@@ -18,6 +18,7 @@ public class SRSSettings extends ModSettings {
             + "piratehuman,explorerhuman,minerhuman,traderhuman";
     public static final String DEFAULT_VISUAL_FOLDERS = "mobs,projectiles";
     public static final String DEFAULT_SOUND_CATEGORIES = "music,animals,creatures,environment,weather,weapons,impacts,interface,bosses,other";
+    public static final String DEFAULT_DROP_GROUPS = "enemies,bosses,critters,animals,rocks,trees,plants,crops,walls";
 
     // Seed: 0 means "generate one on the next start", so every clean install gets its own random seed
     public long seed = 0;
@@ -33,6 +34,8 @@ public class SRSSettings extends ModSettings {
 
     // 2 - Drops
     public boolean drops = true;
+    public String dropsMode = "group";
+    public String dropGroups = DEFAULT_DROP_GROUPS;
     public boolean dropQuantities = true;
     public float dropQuantityMin = 0.4F;
     public float dropQuantityMax = 2.5F;
@@ -43,6 +46,7 @@ public class SRSSettings extends ModSettings {
     public boolean recipes = false;
     public boolean recipesSameStation = false;
     public float recipesShuffleLevel = 1.0F;
+    public boolean recipesFreeRevivalPotion = true;
 
     // 4 - Shops
     public boolean shops = true;
@@ -208,7 +212,9 @@ public class SRSSettings extends ModSettings {
         data.addSafeString("bossPool", bossPool, "1.2 - Chefes que podem trocar entre si, tambem nos drops (IDs separados por virgula; vazio = nao trocar chefes)");
         data.addSafeString("townNPCPool", townNPCPool, "1.1 - NPCs que podem trocar de lugar entre si (IDs separados por virgula)");
 
-        data.addBoolean("drops", drops, "2 - Troca a tabela de drops entre inimigos, chefes, bichos, rochas, arvores, plantas, flores e paredes");
+        data.addBoolean("drops", drops, "2 - Troca a tabela de drops entre inimigos, chefes, bichos, animais, rochas, arvores, plantas, plantacoes e paredes");
+        data.addSafeString("dropsMode", dropsMode, "group = so troca dentro do mesmo grupo (inimigos com inimigos, rochas com rochas...) | all = troca totalmente aleatoria: todos os grupos marcados viram um grupo so");
+        data.addSafeString("dropGroups", dropGroups, "Grupos que participam da troca de drops: enemies,bosses,critters,animals,rocks,trees,plants,crops (plantacoes e flores),walls");
         data.addBoolean("dropQuantities", dropQuantities, "2 - Multiplica a quantidade de cada item dropado por um fator fixo da seed (nunca zera um drop)");
         data.addFloat("dropQuantityMin", dropQuantityMin, "Multiplicador minimo de quantidade");
         data.addFloat("dropQuantityMax", dropQuantityMax, "Multiplicador maximo de quantidade");
@@ -218,6 +224,7 @@ public class SRSSettings extends ModSettings {
         data.addBoolean("recipes", recipes, "3 - Embaralha os ingredientes das receitas");
         data.addBoolean("recipesSameStation", recipesSameStation, "true = so troca entre receitas da mesma estacao de trabalho (mais jogavel)");
         data.addFloat("recipesShuffleLevel", recipesShuffleLevel, "Nivel de embaralhamento: parte das receitas que trocam de ingredientes (0.01 = 1%, 1.0 = 100%)");
+        data.addBoolean("recipesFreeRevivalPotion", recipesFreeRevivalPotion, "3 - Pocao de Ressureicao gratis: feita sem precisar de ingredientes na bancada de alquimia");
 
         data.addBoolean("shops", shops, "4 - Embaralha as lojas dos NPCs de cidade");
         data.addSafeString("shopsMode", shopsMode, "items = troca cada item vendido/comprado por outro | npcs = so troca as lojas inteiras entre os NPCs (aldeoes)");
@@ -314,6 +321,10 @@ public class SRSSettings extends ModSettings {
         townNPCPool = data.getSafeString("townNPCPool", townNPCPool, false);
 
         drops = data.getBoolean("drops", drops, false);
+        dropsMode = data.getSafeString("dropsMode", dropsMode, false);
+        dropGroups = data.getSafeString("dropGroups", dropGroups, false);
+        // The first 0.7.4.2 builds called the crops group "flowers"
+        dropGroups = dropGroups.replaceAll("\\bflowers\\b", "crops");
         dropQuantities = data.getBoolean("dropQuantities", dropQuantities, false);
         dropQuantityMin = data.getFloat("dropQuantityMin", dropQuantityMin, false);
         dropQuantityMax = data.getFloat("dropQuantityMax", dropQuantityMax, false);
@@ -323,6 +334,7 @@ public class SRSSettings extends ModSettings {
         recipes = data.getBoolean("recipes", recipes, false);
         recipesSameStation = data.getBoolean("recipesSameStation", recipesSameStation, false);
         recipesShuffleLevel = data.getFloat("recipesShuffleLevel", recipesShuffleLevel, false);
+        recipesFreeRevivalPotion = data.getBoolean("recipesFreeRevivalPotion", recipesFreeRevivalPotion, false);
 
         shops = data.getBoolean("shops", shops, false);
         shopsMode = data.getSafeString("shopsMode", shopsMode, false);
