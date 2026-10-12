@@ -18,7 +18,7 @@ public class SRSSettings extends ModSettings {
             + "piratehuman,explorerhuman,minerhuman,traderhuman";
     public static final String DEFAULT_VISUAL_FOLDERS = "mobs,projectiles";
     public static final String DEFAULT_SOUND_CATEGORIES = "music,animals,creatures,environment,weather,weapons,impacts,interface,bosses,other";
-    public static final String DEFAULT_DROP_GROUPS = "enemies,bosses,critters,animals,rocks,trees,plants,crops,walls";
+    public static final String DEFAULT_DROP_GROUPS = "enemies,bosses,critters,animals,rocks,trees,plants,walls";
 
     // Seed: 0 means "generate one on the next start", so every clean install gets its own random seed
     public long seed = 0;
