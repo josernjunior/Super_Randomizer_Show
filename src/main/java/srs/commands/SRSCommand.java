@@ -164,7 +164,8 @@ public class SRSCommand extends ModularChatCommand {
                         + " | 12 % dano equip.: " + onOff(s.equipmentDamage) + ", pergaminhos " + onOff(s.enchantScrolls));
                 log.add(" 13 Visuais: " + onOff(s.visuals) + " (Troca Bugada Divertida: " + onOff(s.funnyBuggedSwap) + ", rotacao: " + onOff(s.visualRotation) + ")"
                         + " | 14 Projeteis: " + onOff(s.projectiles) + " (velocidade " + onOff(s.projectileSpeed) + ")"
-                        + " | 15 Traducoes: " + onOff(s.translations) + " (" + s.translationMode + ") | 16 Sons: " + onOff(s.sounds));
+                        + " | 15 Traducoes: " + onOff(s.translations) + " (" + s.translationMode + ") | 16 Sons: " + onOff(s.sounds)
+                        + " (rotacao: " + onOff(s.soundRotation) + ")");
                 log.add(" 17 Recompensas: " + onOff(s.questRewards) + " (Mestre Anciao " + onOff(s.questRewardsElder)
                         + ", diario de aventura " + onOff(s.questRewardsJournal) + ")"
                         + " | 18 Pesca: iscas " + onOff(s.fishingBaitPower) + ", varas " + onOff(s.fishingRodPower)

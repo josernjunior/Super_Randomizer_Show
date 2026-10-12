@@ -24,6 +24,8 @@ import necesse.engine.registries.ObjectRegistry;
 import necesse.engine.registries.ProjectileRegistry;
 import necesse.engine.storyObjectives.objectives.bossObjectives.DefeatEvilsProtectorStoryObjective;
 import necesse.engine.util.GameRandom;
+import necesse.entity.levelEvent.LevelEvent;
+import necesse.entity.levelEvent.mobAbilityLevelEvent.MobAbilityLevelEvent;
 import necesse.entity.mobs.EquipmentBuffManager;
 import necesse.entity.mobs.GameDamage;
 import necesse.entity.mobs.Mob;
@@ -35,6 +37,7 @@ import necesse.entity.mobs.buffs.staticBuffs.armorBuffs.ArmorBuff;
 import necesse.entity.mobs.friendly.human.humanShop.BuyingShopItem;
 import necesse.entity.mobs.friendly.human.humanShop.HumanShop;
 import necesse.entity.mobs.friendly.human.humanShop.SellingShopItem;
+import necesse.entity.mobs.hostile.FurnaceGolemMob;
 import necesse.entity.projectile.Projectile;
 import necesse.inventory.InventoryItem;
 import necesse.inventory.item.Item;
@@ -56,6 +59,7 @@ import necesse.level.maps.biomes.MobSpawnTable;
 import srs.core.MobPools;
 import srs.core.MobPools.Pool;
 import srs.core.SRS;
+import srs.core.SpawnOrder;
 import srs.random.DropRandomizer;
 import srs.random.EnchantmentRandomizer;
 import srs.random.EquipmentRandomizer;
@@ -338,6 +342,24 @@ public final class SelfTest {
 
         // 4 - shops: whole shops moved to other NPCs, and prices
         testShops(level, x, y, failures, log);
+
+        // Spawn order fix: the furnace golem's heat event must wait for the golem and then be added with it as owner
+        Mob golem = MobRegistry.getMob(MobRegistry.getMobID("furnacegolem"), level);
+        if (golem instanceof FurnaceGolemMob) {
+            try {
+                int before = SpawnOrder.deferredCount();
+                level.entityManager.addMob(golem, x, y);
+                LevelEvent event = level.entityManager.events.get(((FurnaceGolemMob) golem).eventUniqueID, false);
+                boolean owned = event instanceof MobAbilityLevelEvent && ((MobAbilityLevelEvent) event).owner == golem;
+                log.accept("Ordem de spawn: evento de calor do golem " + (SpawnOrder.deferredCount() > before ? "esperou o golem" : "NAO esperou")
+                        + " e " + (owned ? "foi adicionado com o golem como dono" : "NAO esta no nivel com o dono certo"));
+                if (SpawnOrder.deferredCount() == before || !owned) failures.merge("evento de calor do golem fora de ordem", 1, Integer::sum);
+            } catch (Throwable t) {
+                fail(failures, "golem de fornalha", t);
+            } finally {
+                golem.remove();
+            }
+        }
 
         // 5.2/5.3 - enemy and boss damage
         int pooled = MobPools.get(Pool.HOSTILE).size() + MobPools.get(Pool.BOSS).size();

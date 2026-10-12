@@ -16,6 +16,7 @@ import necesse.gfx.res.ResourceEncoder;
 import necesse.inventory.item.Item;
 import necesse.inventory.item.armorItem.ArmorItem;
 import srs.core.Reflect;
+import srs.core.Rotation;
 import srs.core.SRS;
 import srs.core.SeedRandom;
 import srs.core.Spoiler;
@@ -35,10 +36,6 @@ import srs.core.Spoiler;
 public final class VisualRandomizer {
 
     private static final Pattern PART = Pattern.compile("^(.+?)(_?arms_left|_?arms_right|_shadow|_front|_back|_glow|_mask|_left|_right|_top|_bottom|_head|_body|_feet|_light|_lights)$");
-
-    /** Rotation (13c): how many complete sets of swaps the seed makes, and how long each one stays, in world play time. */
-    public static final int VARIANTS = 3;
-    public static final long ROTATION_MILLIS = 6 * 60 * 1000L;
 
     /** The swaps textures are loaded with (variant 0). */
     private static final Map<String, String> mapping = new HashMap<>();
@@ -103,12 +100,11 @@ public final class VisualRandomizer {
         }
 
         boolean rotation = SRS.settings().visualRotation;
-        for (int v = 0; v < (rotation ? VARIANTS : 1); v++) {
+        for (int v = 0; v < (rotation ? Rotation.VARIANTS : 1); v++) {
             Map<String, String> variant = v == 0 ? mapping : new HashMap<>();
-            List<String> lines = Spoiler.section(rotation ? "13 - Visuais, opcao " + (v + 1) + " de " + VARIANTS + " (textura original -> textura mostrada)"
-                    : "13 - Visuais (textura original -> textura mostrada)");
+            List<String> lines = Spoiler.section(Rotation.sectionTitle("13", "Visuais", "textura original -> textura mostrada", rotation, v));
             if (v == 0 && rotation) {
-                lines.add("Rotacao ligada: as " + VARIANTS + " opcoes se alternam a cada " + (ROTATION_MILLIS / 60000) + " minutos de jogo.");
+                lines.add("Rotacao ligada: as " + Rotation.VARIANTS + " opcoes se alternam a cada " + (Rotation.MILLIS / 60000) + " minutos de jogo.");
             }
             if (bugged) lines.add("Troca Bugada Divertida ligada: as partes dos mobs ([bugada]) trocam separadas umas das outras.");
             buildVariant(v, variant, families, armorSlot, bugged, lines);
@@ -118,13 +114,13 @@ public final class VisualRandomizer {
             tracked.addAll(mapping.keySet());
             for (Map<String, String> variant : variants) tracked.addAll(variant.keySet());
         }
-        SRS.log("Visual randomizer swapped " + mapping.size() + " textures" + (rotation ? " (" + VARIANTS + " rotating variants)" : ""));
+        SRS.log("Visual randomizer swapped " + mapping.size() + " textures" + (rotation ? " (" + Rotation.VARIANTS + " rotating variants)" : ""));
     }
 
     /** One complete set of swaps. Variant 0 uses the original keys, so seeds without rotation keep their visuals. */
     private static void buildVariant(int v, Map<String, String> out, Map<String, Map<String, Map<String, Tex>>> families,
                                      Map<String, String> armorSlot, boolean bugged, List<String> lines) {
-        String suffix = v == 0 ? "" : "#" + (v + 1);
+        String suffix = Rotation.keySuffix(v);
         List<String> folderNames = new ArrayList<>(families.keySet());
         Collections.sort(folderNames);
         for (String folder : folderNames) {
@@ -271,7 +267,7 @@ public final class VisualRandomizer {
     }
 
     private static void rotate(Client client) {
-        int wanted = (int) ((client.worldEntity.getTime() / ROTATION_MILLIS) % VARIANTS);
+        int wanted = Rotation.variantAt(client.worldEntity.getTime());
         List<Decoded> ready = decoded;
         if (ready != null) {
             decoded = null;
@@ -328,7 +324,7 @@ public final class VisualRandomizer {
                 SRS.warn("Visual rotation could not update " + d.requested + ": " + t);
             }
         }
-        SRS.log("Visual rotation: option " + (decodingVariant + 1) + " of " + VARIANTS + " (" + done + " textures changed)");
+        SRS.log("Visual rotation: option " + (decodingVariant + 1) + " of " + Rotation.VARIANTS + " (" + done + " textures changed)");
     }
 
     private static class Decoded {

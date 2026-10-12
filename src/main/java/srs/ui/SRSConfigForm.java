@@ -44,6 +44,9 @@ public class SRSConfigForm extends Form {
     private static final int WIDTH = 700;
     private static final int HEIGHT = 580;
     private static final int INDENT = 24;
+    /** Width of the gray note to the right of some checkboxes. */
+    private static final int NOTE_WIDTH = 170;
+    private static final String PERFORMANCE_NOTE = "ativar pode afetar o desempenho do jogo";
 
     // Slider value formats
     private static final int MULTIPLIER = 0;
@@ -338,8 +341,8 @@ public class SRSConfigForm extends Form {
         check(0, "Troca Bugada Divertida: as partes dos mobs trocam separadas (ex.: slime com braços de zumbi). Funciona mesmo com os visuais desligados.",
                 s -> s.funnyBuggedSwap, (s, v) -> s.funnyBuggedSwap = v, null);
         flow.next(4);
-        check(0, "Rotação: a seed gera 3 opções de troca de visual, que se alternam a cada 6 minutos de jogo", s -> s.visualRotation,
-                (s, v) -> s.visualRotation = v, () -> edit.visuals || edit.funnyBuggedSwap);
+        check(0, "Rotação: a seed gera 3 opções de troca de visual, que se alternam a cada 6 minutos de jogo", PERFORMANCE_NOTE,
+                s -> s.visualRotation, (s, v) -> s.visualRotation = v, () -> edit.visuals || edit.funnyBuggedSwap);
 
         section("14 - Projéteis");
         check(0, "Trocar os projéteis de armas, inimigos e chefes", s -> s.projectiles, (s, v) -> s.projectiles = v, null);
@@ -363,6 +366,9 @@ public class SRSConfigForm extends Form {
         check(0, "Trocar os sons dentro de cada categoria", s -> s.sounds, (s, v) -> s.sounds = v, null);
         label(1, "Categorias:");
         listChecks(2, SOUND_CATEGORIES, s -> s.soundCategories, (s, v) -> s.soundCategories = v, () -> edit.sounds);
+        flow.next(4);
+        check(0, "Rotação: a seed gera 3 opções de troca de som, que se alternam a cada 6 minutos de jogo (a música muda na hora da troca)",
+                PERFORMANCE_NOTE, s -> s.soundRotation, (s, v) -> s.soundRotation = v, () -> edit.sounds);
 
         section("17 - Recompensas");
         check(0, "Recompensas aleatórias: as quests dão itens aleatórios de recompensa", s -> s.questRewards, (s, v) -> s.questRewards = v, null);
@@ -469,9 +475,23 @@ public class SRSConfigForm extends Form {
     }
 
     private FormCheckBox check(int indent, String text, Predicate<SRSSettings> getter, BiConsumer<SRSSettings, Boolean> setter, BooleanSupplier enabledWhen) {
+        return check(indent, text, null, getter, setter, enabledWhen);
+    }
+
+    /** A checkbox with an optional gray note to its right (the checkbox text wraps in the space left). */
+    private FormCheckBox check(int indent, String text, String note, Predicate<SRSSettings> getter, BiConsumer<SRSSettings, Boolean> setter,
+                               BooleanSupplier enabledWhen) {
         if (!visible) return null;
-        FormCheckBox box = content.addComponent(new FormCheckBox(text, x(indent), flow.next(), width(indent), getter.test(edit)));
-        flow.next(Math.max(20, box.getBoundingBox().height) + 4);
+        int y = flow.next();
+        int boxWidth = note == null ? width(indent) : width(indent) - NOTE_WIDTH - 10;
+        FormCheckBox box = content.addComponent(new FormCheckBox(text, x(indent), y, boxWidth, getter.test(edit)));
+        int height = Math.max(20, box.getBoundingBox().height);
+        if (note != null) {
+            FormLabel label = content.addComponent(new FormLabel(note, new FontOptions(12).color(getInterfaceStyle().inactiveTextColor), -1,
+                    x(indent) + boxWidth + 10, y + 3, NOTE_WIDTH));
+            height = Math.max(height, label.getHeight() + 3);
+        }
+        flow.next(height + 4);
         box.onClicked(e -> {
             setter.accept(edit, box.checked);
             refresh();

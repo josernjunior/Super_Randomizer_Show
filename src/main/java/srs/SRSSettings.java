@@ -141,7 +141,7 @@ public class SRSSettings extends ModSettings {
 
     // 10 - Armor set bonuses
     public boolean armorSetBonuses = true;
-    public String armorSetBonusMode = "swap";
+    public String armorSetBonusMode = "double";
 
     // 11 - Equipment effects
     public boolean equipmentEffects = true;
@@ -150,8 +150,8 @@ public class SRSSettings extends ModSettings {
     // 12 - Equipment damage % and enchantment scrolls
     public boolean equipmentDamage = true;
     public float equipmentDamageMultMin = 0.0F;
-    public float equipmentDamageMultMax = 2.5F;
-    public boolean enchantScrolls = false;
+    public float equipmentDamageMultMax = 2.0F;
+    public boolean enchantScrolls = true;
     public float enchantScrollsMin = 0.5F;
     public float enchantScrollsMax = 2.0F;
 
@@ -159,7 +159,7 @@ public class SRSSettings extends ModSettings {
     public boolean visuals = true;
     public String visualFolders = DEFAULT_VISUAL_FOLDERS;
     public boolean funnyBuggedSwap = true;
-    public boolean visualRotation = false;
+    public boolean visualRotation = true;
 
     // 14 - Projectiles
     public boolean projectiles = true;
@@ -174,6 +174,7 @@ public class SRSSettings extends ModSettings {
     // 16 - Sounds
     public boolean sounds = true;
     public String soundCategories = DEFAULT_SOUND_CATEGORIES;
+    public boolean soundRotation = true;
 
     // 17 - Quest rewards
     public boolean questRewards = true;
@@ -280,6 +281,7 @@ public class SRSSettings extends ModSettings {
 
         data.addBoolean("sounds", sounds, "16 - Troca sons dentro da mesma categoria");
         data.addSafeString("soundCategories", soundCategories, "Categorias: music,animals,creatures,environment,weather,weapons,impacts,interface,bosses,notes,other");
+        data.addBoolean("soundRotation", soundRotation, "16b - A seed gera 3 opcoes de troca de som, que se alternam a cada 6 minutos de jogo (a musica muda na hora da troca)");
 
         data.addBoolean("questRewards", questRewards, "17 - Recompensas aleatorias: troca os itens que as quests dao de recompensa");
         data.addBoolean("questRewardsElder", questRewardsElder, "17.1 - Recompensas dos objetivos do Mestre Anciao");
@@ -398,6 +400,7 @@ public class SRSSettings extends ModSettings {
 
         sounds = data.getBoolean("sounds", sounds, false);
         soundCategories = data.getSafeString("soundCategories", soundCategories, false);
+        soundRotation = data.getBoolean("soundRotation", soundRotation, false);
 
         questRewards = data.getBoolean("questRewards", questRewards, false);
         questRewardsElder = data.getBoolean("questRewardsElder", questRewardsElder, false);
