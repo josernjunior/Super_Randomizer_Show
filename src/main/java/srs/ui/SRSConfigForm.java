@@ -256,6 +256,22 @@ public class SRSConfigForm extends Form {
                 s -> s.randomItemDrop, (s, v) -> s.randomItemDrop = v, null);
         slider(1, t("Chance do item aleatório", "Random item chance"), 0.005F, 1.0F, 0.005F, PERCENT_DECIMAL, s -> s.randomItemDropChance,
                 (s, v) -> s.randomItemDropChance = v);
+        flow.next(4);
+        note(0, t("Ao marcar chefes para trocar entre si (aba 1, lista 1.2), a Escada de Caverna Profunda passa a cair sempre de um chefe e "
+                        + "de dois inimigos ou animais sorteados entre os que aparecem no começo do jogo, antes das cavernas profundas. "
+                        + "O spoiler mostra quais são.",
+                "When bosses are checked to swap with each other (tab 1, list 1.2), the Deep Cave Ladder always drops from a boss and "
+                        + "from two enemies or animals drawn among those that appear early in the game, before the deep caves. "
+                        + "The spoiler shows which ones."));
+        flow.next(4);
+        check(0, t("Almas dos Dragões garantidas", "Guaranteed Dragon Souls"), s -> s.dragonSoulsDrops, (s, v) -> s.dragonSoulsDrops = v,
+                () -> edit.mobSpawns && SRS.parseList(edit.bossPool).size() > 1);
+        note(1, t("Com chefes marcados para trocar entre si, sempre dropam 1 Almas dos Dragões: o chefe que aparece no lugar de um chefe "
+                        + "sorteado entre o Evil's Protector e o Pest Warden, e dois inimigos ou animais sorteados entre os que aparecem antes do "
+                        + "Sage and Grit. As Almas abrem o pedestal do Sage and Grit e, com ele, o templo. O spoiler mostra quais são.",
+                "With bosses checked to swap with each other, these always drop 1 Dragon Souls: the boss that appears in place of a boss "
+                        + "drawn between Evil's Protector and Pest Warden, and two enemies or animals drawn among those that appear before "
+                        + "Sage and Grit. The souls open Sage and Grit's pedestal and, through them, the temple. The spoiler shows which ones."));
 
         section(t("3 - Receitas", "3 - Recipes"));
         check(0, t("Embaralhar os ingredientes das receitas", "Shuffle recipe ingredients"), s -> s.recipes, (s, v) -> s.recipes = v, null);
@@ -545,6 +561,14 @@ public class SRSConfigForm extends Form {
         if (!visible) return;
         FormLabel label = content.addComponent(new FormLabel(text, new FontOptions(14), -1, x(indent), flow.next(), width(indent)));
         flow.next(Math.max(18, label.getHeight()) + 4);
+    }
+
+    /** A gray explanation, like the notes next to checkboxes but across the whole width. */
+    private void note(int indent, String text) {
+        if (!visible) return;
+        FormLabel label = content.addComponent(new FormLabel(text, new FontOptions(12).color(getInterfaceStyle().inactiveTextColor), -1,
+                x(indent), flow.next(), width(indent)));
+        flow.next(Math.max(16, label.getHeight()) + 4);
     }
 
     private FormCheckBox check(int indent, String text, Predicate<SRSSettings> getter, BiConsumer<SRSSettings, Boolean> setter, BooleanSupplier enabledWhen) {

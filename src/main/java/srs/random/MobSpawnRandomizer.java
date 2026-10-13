@@ -6,6 +6,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import necesse.entity.mobs.Mob;
 import necesse.level.maps.Level;
 import srs.SRSSettings;
 import srs.core.MobPools;
@@ -20,12 +21,38 @@ import srs.core.Spoiler;
  * The swap happens inside MobRegistry.getMob(String, Level), so the replacement is configured by the game code
  * exactly as the original would have been. It is only applied when the code asking for the mob is known to be a
  * spawn point that treats the result as a generic Mob/HumanMob (natural spawn tables, village presets, boss
- * summon items, incursion bosses). Everything else, including loading saved mobs and client side network spawns,
- * is left untouched, which keeps saves stable and avoids ClassCastExceptions in game code that casts the mob.
+ * summon items, incursion bosses, the queen spider's egg, the ancient totem). Everything else, including loading
+ * saved mobs and client side network spawns, is left untouched, which keeps saves stable and avoids
+ * ClassCastExceptions in game code that casts the mob. Bosses whose spawn casts them, or that wait in an arena,
+ * are swapped later by {@link BossStandIn}.
  */
 public final class MobSpawnRandomizer {
 
+    private static final String SPAWN_ITEMS = "necesse.inventory.item.placeableItem.consumableItem.spawnItems.";
+    /** Boss spawns that cast the boss to its own class or set it up after getMob: swapped when the boss is added to the level. */
+    private static final String[] LATE_BOSS_CALLERS = {
+            SPAWN_ITEMS + "PirateCaptainSpawnItem",
+            SPAWN_ITEMS + "VoidWizardSpawnItem",
+            "necesse.level.gameObject.TemplePedestalObject",
+            "necesse.level.maps.levelData.CursedCroneArenasLevelData"};
+
     private static final Map<String, String> mapping = new HashMap<>();
+
+    /** What the getMob patch does with one call. */
+    public static final class Decision {
+        /** The mob getMob creates: the replacement, or the original when it's swapped later. */
+        public final String spawnID;
+        final String to;
+        final boolean boss;
+        final boolean late;
+
+        Decision(String original, String to, boolean boss, boolean late) {
+            this.spawnID = late ? original : to;
+            this.to = to;
+            this.boss = boss;
+            this.late = late;
+        }
+    }
 
     private MobSpawnRandomizer() {
     }
@@ -60,14 +87,38 @@ public final class MobSpawnRandomizer {
         return mapping.get(stringID);
     }
 
-    /** Called from the MobRegistry.getMob(String, Level) patch. */
-    public static String remap(String stringID, Level level) {
-        if (stringID == null || mapping.isEmpty() || level == null || !level.isServer()) return stringID;
+    /** True when the boss randomizer swaps at least one boss (spawns on and two or more bosses in its pool). */
+    public static boolean bossesSwapped() {
+        for (String id : MobPools.get(Pool.BOSS)) {
+            if (bossReplacement(id) != null) return true;
+        }
+        return false;
+    }
+
+    /** The boss that takes this boss's place, or null when it stays. */
+    public static String bossReplacement(String stringID) {
+        if (stringID == null || mapping.isEmpty()) return null;
         String to = mapping.get(stringID);
-        if (to == null || to.equals(stringID)) return stringID;
+        return to == null || to.equals(stringID) || MobPools.poolOf(stringID) != Pool.BOSS ? null : to;
+    }
+
+    /** Called on enter of the MobRegistry.getMob(String, Level) patch. Null leaves the call alone. */
+    public static Decision decide(String stringID, Level level) {
+        if (stringID == null || mapping.isEmpty() || level == null || !level.isServer()) return null;
+        String to = mapping.get(stringID);
+        if (to == null || to.equals(stringID)) return null;
         Pool pool = MobPools.poolOf(stringID);
-        if (pool == null || !allowedPools(findCaller()).contains(pool)) return stringID;
-        return to;
+        if (pool == null) return null;
+        String caller = findCaller();
+        if (pool == Pool.BOSS && isLateBossCaller(caller)) return new Decision(stringID, to, true, true);
+        if (!allowedPools(caller).contains(pool)) return null;
+        return new Decision(stringID, to, pool == Pool.BOSS, false);
+    }
+
+    /** Called on exit of the MobRegistry.getMob(String, Level) patch with the mob it created. */
+    public static void created(Decision decision, Mob mob) {
+        if (decision.late) BossStandIn.markPending(mob, decision.to);
+        else if (decision.boss) BossStandIn.markReplacement(mob);
     }
 
     private static String findCaller() {
@@ -98,13 +149,22 @@ public final class MobSpawnRandomizer {
                 || caller.startsWith("necesse.level.maps.presets.CaveHoboHomePreset")) {
             return EnumSet.of(Pool.TOWN);
         }
-        // Boss summon items (the pirate captain item casts to PirateCaptainMob, so it's left alone)
-        if (caller.startsWith("necesse.inventory.item.placeableItem.consumableItem.spawnItems.")
-                && !caller.contains("PirateCaptainSpawnItem")) {
+        // Bosses summoned by items, by incursions (also their second boss), by breaking the queen spider's egg or the ancient totem
+        if (caller.startsWith(SPAWN_ITEMS)
+                || caller.equals("necesse.entity.levelEvent.IncursionLevelEvent")
+                || caller.startsWith("necesse.entity.levelEvent.incursionModifiers.DoubleBossChanceLevelEvent")
+                || caller.equals("necesse.level.gameObject.RoyalEggObject")
+                || caller.equals("necesse.level.gameObject.AncientTotemObject")) {
             return EnumSet.of(Pool.BOSS);
         }
-        if (caller.equals("necesse.entity.levelEvent.IncursionLevelEvent")) return EnumSet.of(Pool.BOSS);
         return EnumSet.noneOf(Pool.class);
+    }
+
+    private static boolean isLateBossCaller(String caller) {
+        for (String c : LATE_BOSS_CALLERS) {
+            if (caller.equals(c) || caller.startsWith(c + "$")) return true;
+        }
+        return false;
     }
 
 }

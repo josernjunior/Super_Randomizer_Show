@@ -8,12 +8,14 @@ import necesse.engine.commands.CommandsManager;
 import necesse.engine.events.ServerClientConnectedEvent;
 import necesse.engine.modLoader.LoadedMod;
 import necesse.engine.modLoader.annotations.ModEntry;
+import necesse.engine.registries.LevelEventRegistry;
 import necesse.engine.registries.PacketRegistry;
 import srs.commands.SRSCommand;
 import srs.core.MobPools;
 import srs.core.SRS;
 import srs.core.Spoiler;
 import srs.network.PacketSRSConfig;
+import srs.random.ArenaBossGuard;
 import srs.random.DropRandomizer;
 import srs.random.EnchantmentRandomizer;
 import srs.random.EquipmentRandomizer;
@@ -22,6 +24,7 @@ import srs.random.MobDamageRandomizer;
 import srs.random.MobHealthRandomizer;
 import srs.random.MobStatRandomizer;
 import srs.random.MobSpawnRandomizer;
+import srs.random.ProgressionDrops;
 import srs.random.ProjectileRandomizer;
 import srs.random.QuestRewardRandomizer;
 import srs.random.ShopRandomizer;
@@ -70,6 +73,8 @@ public class SuperRandomizerShow {
 
     public void init() {
         PacketRegistry.registerPacket(PacketSRSConfig.class);
+        // Always registered, so worlds that saved one load with any settings
+        LevelEventRegistry.registerEvent(ArenaBossGuard.ID, ArenaBossGuard.class);
         CommandsManager.registerServerCommand(new SRSCommand());
         GameEvents.addListener(ServerClientConnectedEvent.class, new GameEventListener<ServerClientConnectedEvent>() {
             @Override
@@ -89,6 +94,7 @@ public class SuperRandomizerShow {
     public void postInit() {
         MobPools.build();
         MobSpawnRandomizer.build();
+        ProgressionDrops.build();
         MobDamageRandomizer.build();
         MobHealthRandomizer.build();
         MobStatRandomizer.build();

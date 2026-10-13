@@ -22,6 +22,7 @@ import necesse.engine.registries.JournalChallengeRegistry;
 import necesse.engine.registries.MobRegistry;
 import necesse.engine.registries.ObjectRegistry;
 import necesse.engine.registries.ProjectileRegistry;
+import necesse.engine.save.levelData.LevelEventSave;
 import necesse.engine.storyObjectives.objectives.bossObjectives.DefeatEvilsProtectorStoryObjective;
 import necesse.engine.util.GameRandom;
 import necesse.entity.levelEvent.LevelEvent;
@@ -38,6 +39,9 @@ import necesse.entity.mobs.friendly.human.humanShop.BuyingShopItem;
 import necesse.entity.mobs.friendly.human.humanShop.HumanShop;
 import necesse.entity.mobs.friendly.human.humanShop.SellingShopItem;
 import necesse.entity.mobs.hostile.FurnaceGolemMob;
+import necesse.entity.mobs.hostile.bosses.ChieftainMob;
+import necesse.entity.mobs.hostile.pirates.PirateCaptainMob;
+import necesse.entity.pickup.ItemPickupEntity;
 import necesse.entity.projectile.Projectile;
 import necesse.inventory.InventoryItem;
 import necesse.inventory.item.Item;
@@ -53,6 +57,7 @@ import necesse.inventory.recipe.CanCraft;
 import necesse.inventory.recipe.Recipe;
 import necesse.inventory.recipe.Recipes;
 import necesse.level.gameObject.GameObject;
+import necesse.level.gameObject.RoyalEggObject;
 import necesse.level.maps.Level;
 import necesse.level.maps.LevelTile;
 import necesse.level.maps.biomes.FishingLootTable;
@@ -63,6 +68,8 @@ import srs.core.MobPools;
 import srs.core.MobPools.Pool;
 import srs.core.SRS;
 import srs.core.SpawnOrder;
+import srs.random.ArenaBossGuard;
+import srs.random.BossStandIn;
 import srs.random.DropRandomizer;
 import srs.random.EnchantmentRandomizer;
 import srs.random.EquipmentRandomizer;
@@ -71,6 +78,7 @@ import srs.random.MobDamageRandomizer;
 import srs.random.MobHealthRandomizer;
 import srs.random.MobStatRandomizer;
 import srs.random.MobSpawnRandomizer;
+import srs.random.ProgressionDrops;
 import srs.random.ProjectileRandomizer;
 import srs.random.QuestRewardRandomizer;
 import srs.random.RecipeRandomizer;
@@ -153,6 +161,31 @@ public final class SelfTest {
         }
         level.entityManager.pickups.stream().forEach(p -> p.remove());
         log.accept("Mortes: " + killed + " mobs mortos, " + drops + " drops gerados");
+
+        // 1 - bosses spawned by code that casts them or leaves them waiting in an arena
+        testBossStandIns(level, tile, x, y, failures, log);
+
+        // 1.3/1.4 - every mob picked to drop the Deep Cave Ladder or Dragon Souls must drop it when killed
+        for (Map.Entry<String, Set<String>> e : ProgressionDrops.droppers().entrySet()) {
+            String item = e.getKey();
+            List<String> missing = new ArrayList<>();
+            for (String id : e.getValue()) {
+                Set<Integer> before = mobIDs(level);
+                try {
+                    Mob mob = MobRegistry.getMob(MobRegistry.getMobID(id), level);
+                    level.entityManager.addMob(mob, x, y);
+                    long dropped = countPickups(level, item);
+                    mob.remove(0.0F, 0.0F, null, true);
+                    if (countPickups(level, item) <= dropped) missing.add(id);
+                } catch (Throwable t) {
+                    fail(failures, item + " de " + id, t);
+                } finally {
+                    removeNew(level, before);
+                }
+            }
+            log.accept("Drop garantido de " + item + ": " + e.getValue() + (missing.isEmpty() ? " (todos dropam)" : ", NAO dropou de " + missing));
+            if (!missing.isEmpty()) failures.merge("mortos sem dropar " + item + ": " + missing, 1, Integer::sum);
+        }
 
         // 2 - drop swaps: whatever drops something must only take the drops of something that also drops (and the other way
         // around); only checked groups take part; in group mode nothing leaves its group; mob <-> object drops must roll
@@ -602,6 +635,200 @@ public final class SelfTest {
             log.accept(failures.size() + " falhas:");
             for (Map.Entry<String, Integer> e : failures.entrySet()) log.accept("  " + e.getKey());
         }
+    }
+
+    /**
+     * Bosses swapped by {@link BossStandIn}: a summoned one must be replaced when added (and its replacement's death
+     * must redo the pirate captain's), a waiting one when it wakes up, the queen spider's egg must hatch the mapped
+     * boss, and replacements that would wait to be hit must start their fight.
+     */
+    private static void testBossStandIns(Level level, Point tile, float x, float y, Map<String, Integer> failures, Consumer<String> log) {
+        int summoned = 0, woken = 0, swappable = 0;
+        for (String id : MobPools.get(Pool.BOSS)) {
+            String to = MobSpawnRandomizer.bossReplacement(id);
+            if (to == null) continue;
+            swappable++;
+            Set<Integer> before = mobIDs(level);
+            try {
+                Mob original = MobRegistry.getMob(MobRegistry.getMobID(id), level);
+                BossStandIn.markPending(original, to);
+                level.entityManager.addMob(original, x, y);
+                Mob added = BossStandIn.current(original);
+                if (added == original || !to.equals(added.getStringID()) || level.entityManager.mobs.get(added.getUniqueID(), false) != added) {
+                    failures.merge("chefe invocado " + id + " nao virou " + to, 1, Integer::sum);
+                } else {
+                    summoned++;
+                    for (int t = 0; t < 5 && !added.removed(); t++) added.serverTick();
+                    // Evil's Protector flees by day: a replacement that left can't die
+                    if (!added.removed()) {
+                        int pirates = count(level, "piratehuman");
+                        added.remove(0.0F, 0.0F, null, true);
+                        if (id.equals("piratecaptain") && count(level, "piratehuman") <= pirates) {
+                            failures.merge("substituto do piratecaptain morreu sem deixar o pirata", 1, Integer::sum);
+                        }
+                    }
+                }
+                Mob waiting = MobRegistry.getMob(MobRegistry.getMobID(id), level);
+                level.entityManager.addMob(waiting, x, y);
+                Mob replacement = BossStandIn.swapNow(waiting, to);
+                if (replacement == null || !waiting.removed() || level.entityManager.mobs.get(replacement.getUniqueID(), false) != replacement) {
+                    failures.merge("chefe acordado " + id + " nao virou " + to, 1, Integer::sum);
+                } else {
+                    woken++;
+                    for (int t = 0; t < 5 && !replacement.removed(); t++) replacement.serverTick();
+                }
+            } catch (Throwable e) {
+                fail(failures, "troca de " + id + " -> " + to, e);
+            } finally {
+                removeNew(level, before);
+            }
+        }
+
+        // The game's own wake ups: the arena chieftain landing hostile after its gauntlet, the village captain starting a fight
+        List<String> hooks = new ArrayList<>();
+        // An arena is always loaded when its boss wakes up, and the guard tells a despawn from an unload by it
+        level.regionManager.ensureTileIsLoaded(tile.x, tile.y);
+        for (String id : new String[]{"chieftain", "piratecaptain"}) {
+            String to = MobSpawnRandomizer.bossReplacement(id);
+            if (to == null) continue;
+            Set<Integer> before = mobIDs(level);
+            try {
+                Mob mob = MobRegistry.getMob(MobRegistry.getMobID(id), level);
+                if (mob instanceof ChieftainMob) {
+                    ((ChieftainMob) mob).spawnPos = new Point((int) x, (int) y);
+                    level.entityManager.addMob(mob, x, y);
+                    mob.isHostile = true;
+                    mob.serverTick();
+                } else if (mob instanceof PirateCaptainMob) {
+                    ((PirateCaptainMob) mob).baseTile = new Point(tile);
+                    level.entityManager.addMob(mob, x, y);
+                    ((PirateCaptainMob) mob).setInCombatAbility.runAndSend(true);
+                }
+                Mob replacement = level.entityManager.mobs.stream()
+                        .filter(m -> !before.contains(m.getUniqueID()) && !m.removed() && m.getStringID().equals(to)).findFirst().orElse(null);
+                if (BossStandIn.fleesNow(to, level)) {
+                    boolean kept = !mob.removed() && replacement == null;
+                    hooks.add(id + (kept ? " luta como ele mesmo de dia (" + to + " foge de dia)" : " NAO ficou com a propria luta de dia"));
+                    if (!kept) failures.merge(id + " virou " + to + " de dia, que foge na hora", 1, Integer::sum);
+                    continue;
+                }
+                boolean replaced = mob.removed() && replacement != null;
+                // The chieftain's replacement is killed, the captain's despawns
+                hooks.add(id + (replaced ? " virou " + to + " e " + testGuard(level, mob, replacement, mob instanceof ChieftainMob, failures) : " NAO virou " + to));
+                if (!replaced) failures.merge(id + " acordando no proprio lugar nao virou " + to, 1, Integer::sum);
+            } catch (Throwable e) {
+                fail(failures, id + " acordando no proprio lugar", e);
+            } finally {
+                removeNew(level, before);
+            }
+        }
+
+        String eggLine = "sem ovo da rainha aranha";
+        GameObject egg = ObjectRegistry.getObject(ObjectRegistry.getObjectID("royaleggobject"));
+        if (egg instanceof RoyalEggObject) {
+            Set<Integer> before = mobIDs(level);
+            try {
+                ((RoyalEggObject) egg).spawnBoss(level, tile.x, tile.y);
+                String expected = MobSpawnRandomizer.bossReplacement("queenspider");
+                if (expected == null) expected = "queenspider";
+                List<String> hatched = new ArrayList<>();
+                level.entityManager.mobs.stream().filter(m -> !before.contains(m.getUniqueID())).forEach(m -> hatched.add(m.getStringID()));
+                eggLine = "ovo da rainha aranha chocou " + hatched;
+                if (!hatched.contains(expected)) failures.merge("ovo da rainha aranha chocou " + hatched + ", esperado " + expected, 1, Integer::sum);
+            } catch (Throwable e) {
+                fail(failures, "ovo da rainha aranha", e);
+            } finally {
+                removeNew(level, before);
+            }
+        }
+
+        List<String> idle = new ArrayList<>();
+        for (String id : new String[]{"voidwizard", "fallenwizard", "thecursedcrone", "piratecaptain", "chieftain"}) {
+            if (MobRegistry.getMobID(id) < 0) continue;
+            Set<Integer> before = mobIDs(level);
+            try {
+                Mob mob = MobRegistry.getMob(MobRegistry.getMobID(id), level);
+                BossStandIn.markReplacement(mob);
+                level.entityManager.addMob(mob, x, y);
+                mob.serverTick();
+                boolean fighting = mob instanceof PirateCaptainMob ? ((PirateCaptainMob) mob).isInCombat() : mob.isHostile;
+                if (!fighting || mob.removed()) idle.add(id);
+            } catch (Throwable e) {
+                fail(failures, "substituto " + id + " acordando", e);
+            } finally {
+                removeNew(level, before);
+            }
+        }
+        if (!idle.isEmpty()) failures.merge("substitutos que ficaram esperando levar um golpe: " + idle, 1, Integer::sum);
+        log.accept("Chefes de spawn especial: " + swappable + " chefes trocam, " + summoned + " trocados ao serem invocados, " + woken
+                + " trocados ao acordar" + (hooks.isEmpty() ? "" : " (" + String.join(", ", hooks) + ")") + "; " + eggLine
+                + "; substitutos que acordam sozinhos: " + (idle.isEmpty() ? "todos" : "faltam " + idle));
+    }
+
+    /**
+     * The guard left in the arena must survive a save and load, bring the original back when its replacement despawns,
+     * and end without bringing it back when the replacement is killed.
+     */
+    private static String testGuard(Level level, Mob original, Mob replacement, boolean kill, Map<String, Integer> failures) {
+        String id = original.getStringID();
+        ArenaBossGuard guard = level.entityManager.events.stream().filter(e -> e instanceof ArenaBossGuard && !e.isOver())
+                .map(e -> (ArenaBossGuard) e).filter(g -> id.equals(g.getOriginalID())).findFirst().orElse(null);
+        if (guard == null) {
+            failures.merge("nenhum guardiao de arena para " + id, 1, Integer::sum);
+            return "sem guardiao";
+        }
+        try {
+            LevelEvent copy = LevelEventSave.loadSaveData(LevelEventSave.getSave(guard).toLoadData(), level);
+            Mob saved = copy instanceof ArenaBossGuard ? ((ArenaBossGuard) copy).loadOriginal() : null;
+            if (saved == null || !id.equals(saved.getStringID()) || saved.getUniqueID() != original.getUniqueID()) {
+                failures.merge("guardiao de " + id + " perde o chefe ao salvar e carregar", 1, Integer::sum);
+            }
+            if (kill) replacement.remove(0.0F, 0.0F, null, true);
+            else replacement.remove();
+            guard.check();
+            Mob back = level.entityManager.mobs.get(original.getUniqueID(), false);
+            boolean isBack = back != null && back != original && !back.removed() && id.equals(back.getStringID());
+            if (kill) {
+                if (isBack || !guard.isOver()) {
+                    failures.merge(id + " voltou para a arena mesmo com o substituto morto", 1, Integer::sum);
+                    return "voltou mesmo com o substituto morto";
+                }
+                return "nao voltou com o substituto morto";
+            }
+            if (!isBack) {
+                failures.merge(id + " nao voltou para a arena quando o substituto sumiu sem morrer", 1, Integer::sum);
+                return "NAO voltou quando o substituto sumiu";
+            }
+            return "voltou quando o substituto sumiu";
+        } catch (Throwable e) {
+            fail(failures, "guardiao de arena de " + id, e);
+            return "erro no guardiao";
+        } finally {
+            guard.over();
+        }
+    }
+
+    private static Set<Integer> mobIDs(Level level) {
+        Set<Integer> ids = new HashSet<>();
+        level.entityManager.mobs.stream().forEach(m -> ids.add(m.getUniqueID()));
+        return ids;
+    }
+
+    private static long countPickups(Level level, String itemID) {
+        return level.entityManager.pickups.stream().filter(p -> !p.removed() && p instanceof ItemPickupEntity
+                && ((ItemPickupEntity) p).item != null && itemID.equals(((ItemPickupEntity) p).item.item.getStringID())).count();
+    }
+
+    private static int count(Level level, String stringID) {
+        return (int) level.entityManager.mobs.stream().filter(m -> !m.removed() && m.getStringID().equals(stringID)).count();
+    }
+
+    /** Removes the mobs added since the snapshot (fighters a boss spawned too) and every item on the ground. */
+    private static void removeNew(Level level, Set<Integer> before) {
+        List<Mob> added = new ArrayList<>();
+        level.entityManager.mobs.stream().filter(m -> !before.contains(m.getUniqueID())).forEach(added::add);
+        for (Mob m : added) m.remove();
+        level.entityManager.pickups.stream().forEach(p -> p.remove());
     }
 
     /**

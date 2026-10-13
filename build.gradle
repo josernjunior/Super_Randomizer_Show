@@ -7,7 +7,7 @@ plugins {
 
 project.ext.modID = "josezito.srs" // The unique id of your mod. Must be all lowercase and cannot use special characters.
 project.ext.modName = "Super Randomizer Show" // The display name of your mod.
-project.ext.modVersion = "0.7.4.8" // Your current builds version. Must follow the xx.xx... format.
+project.ext.modVersion = "0.7.4.9" // Your current builds version. Must follow the xx.xx... format.
 project.ext.gameVersion = "1.3.3" // The target game version.
 project.ext.modDescription = "Randomizes Necesse from a seed: mobs, drops, recipes, shops, damage, health, defense, visuals, projectiles, sounds, translations, rewards and fishing." // Short description of what your mod is.
 project.ext.author = "josezitojuniores" // Your name

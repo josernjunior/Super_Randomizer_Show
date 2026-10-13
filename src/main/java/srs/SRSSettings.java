@@ -41,6 +41,7 @@ public class SRSSettings extends ModSettings {
     public float dropQuantityMax = 2.5F;
     public boolean randomItemDrop = true;
     public float randomItemDropChance = 0.01F;
+    public boolean dragonSoulsDrops = false;
 
     // 3 - Recipes
     public boolean recipes = false;
@@ -220,6 +221,7 @@ public class SRSSettings extends ModSettings {
         data.addFloat("dropQuantityMax", dropQuantityMax, "Multiplicador maximo de quantidade");
         data.addBoolean("randomItemDrop", randomItemDrop, "2 - Ao matar um mob, chance de dropar tambem um item aleatorio de todo o jogo");
         data.addFloat("randomItemDropChance", randomItemDropChance, "Chance do item aleatorio (0.01 = 1%)");
+        data.addBoolean("dragonSoulsDrops", dragonSoulsDrops, "2 - Com a troca de chefes ligada, um chefe sorteado (do Evil's Protector ao Pest Warden, o que aparece no lugar dele) e dois inimigos ou animais de antes do Sage and Grit sempre dropam 1 Almas dos Dragoes");
 
         data.addBoolean("recipes", recipes, "3 - Embaralha os ingredientes das receitas");
         data.addBoolean("recipesSameStation", recipesSameStation, "true = so troca entre receitas da mesma estacao de trabalho (mais jogavel)");
@@ -330,6 +332,7 @@ public class SRSSettings extends ModSettings {
         dropQuantityMax = data.getFloat("dropQuantityMax", dropQuantityMax, false);
         randomItemDrop = data.getBoolean("randomItemDrop", randomItemDrop, false);
         randomItemDropChance = data.getFloat("randomItemDropChance", randomItemDropChance, false);
+        dragonSoulsDrops = data.getBoolean("dragonSoulsDrops", dragonSoulsDrops, false);
 
         recipes = data.getBoolean("recipes", recipes, false);
         recipesSameStation = data.getBoolean("recipesSameStation", recipesSameStation, false);
